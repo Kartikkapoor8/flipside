@@ -26,10 +26,10 @@ struct RootView: View {
         .persistentSystemOverlays(.hidden)
         .monitorsHinge()
         #if DEBUG
-        .overlay(alignment: .topTrailing) {
+        .overlay(alignment: .topLeading) {
             HingeDebugView()
                 .padding(.top, Brand.Space.s5)
-                .padding(.trailing, Brand.Space.s3)
+                .padding(.leading, Brand.Space.s3)
         }
         #endif
     }

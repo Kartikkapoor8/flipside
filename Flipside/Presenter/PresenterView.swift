@@ -92,16 +92,16 @@ struct PresenterView: View {
     private var notesPanel: some View {
         VStack(alignment: .leading, spacing: Brand.Space.s3) {
             SectionLabel("Notes")
-            ScrollView(.vertical, showsIndicators: false) {
-                Text(appState.currentSlide.notes.isEmpty ? "No notes for this slide." : appState.currentSlide.notes)
-                    .font(Brand.Font.text(24))
-                    .lineSpacing(6)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(appState.currentSlide.notes.isEmpty ? Brand.Presenter.muted : Brand.Presenter.text)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-            }
-            .frame(maxHeight: .infinity, alignment: .top)
+            // Not a ScrollView: on iOS 27.1 a vertical ScrollView here laid the text out on
+            // one line. Long notes shrink instead; the deck's notes are one to three lines.
+            Text(appState.currentSlide.notes.isEmpty ? "No notes for this slide." : appState.currentSlide.notes)
+                .font(Brand.Font.text(24))
+                .lineSpacing(6)
+                .lineLimit(nil)
+                .minimumScaleFactor(0.5)
+                .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(appState.currentSlide.notes.isEmpty ? Brand.Presenter.muted : Brand.Presenter.text)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             if !appState.currentSlide.cue.isEmpty {
                 Divider().overlay(Brand.Crease.dark)
                 SectionLabel("Say to advance")
