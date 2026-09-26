@@ -1,0 +1,31 @@
+/* ============================================================
+   PLACEHOLDER BRAND. ~/flipside-assets/brand did not exist when
+   this deck was built (2026-09-26), so these tokens are a stand-in.
+   Replace the values below with the real palette and type, then run
+   render/render.sh to re-render every PNG.
+   Every font here ships on both macOS and iOS, so the app can match.
+   ============================================================ */
+:root {
+  /* Audience half (dark) */
+  --ink:        #0F1222;   /* slide background */
+  --ink-2:      #1B1F35;   /* raised panels on ink */
+  --on-ink:     #F6F1E8;   /* primary text on ink */
+  --on-ink-mute:#A9AEC6;   /* secondary text on ink */
+  --line-ink:   #2E3350;   /* hairlines on ink */
+
+  /* Presenter half (light) */
+  --paper:      #F6F1E8;   /* notes card background */
+  --paper-2:    #EAE3D6;   /* raised panels on paper */
+  --on-paper:   #17192A;   /* primary text on paper */
+  --on-paper-mute:#6B6F85; /* secondary text on paper */
+  --line-paper: #D9D1C2;   /* hairlines on paper */
+
+  /* Accents */
+  --flip:       #FF6A3D;   /* brand accent: cues, marks, the "flip" */
+  --signal:     #4FD1B3;   /* listening / live state */
+
+  /* Type */
+  --font-display: "Charter", "Iowan Old Style", Georgia, serif;
+  --font-body:    "Avenir Next", "Helvetica Neue", -apple-system, sans-serif;
+  --font-mono:    "Menlo", "SF Mono", monospace;
+}
