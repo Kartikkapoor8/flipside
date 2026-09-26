@@ -1,0 +1,29 @@
+[
+  {
+    "id": "fallback-cover",
+    "layout": "cover",
+    "title": "Why standing desks beat sitting",
+    "body": "Two reasons in ninety seconds.",
+    "notes": "FALLBACK DECK. Play this only if live generation fails or Wi-Fi is down. Read it as if it was just generated. Do not mention Wi-Fi.",
+    "cue": "reason one",
+    "durationHint": 20
+  },
+  {
+    "id": "fallback-move",
+    "layout": "statement",
+    "title": "Your body was built to move",
+    "body": "Long stretches of sitting stiffen your hips and slow your blood. Standing for part of the day keeps you loose and your posture honest.",
+    "notes": "FALLBACK DECK. Shift your weight from foot to foot while you say this. It lands better when you look like you mean it.",
+    "cue": "reason two",
+    "durationHint": 35
+  },
+  {
+    "id": "fallback-sharp",
+    "layout": "statement",
+    "title": "Standing keeps you sharp",
+    "body": "People who stand get to the point faster and slump less after lunch. Alternate sitting and standing, and finish the day with something left.",
+    "notes": "FALLBACK DECK, last slide. The cue takes you back to the closing slide of the pitch. Do not thank the audience here. Save it for the fold.",
+    "cue": "back to the pitch",
+    "durationHint": 35
+  }
+]
