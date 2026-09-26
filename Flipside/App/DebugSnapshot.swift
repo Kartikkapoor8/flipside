@@ -47,6 +47,7 @@ enum DebugSnapshot {
                 // Same actions as the stage strip's buttons.
                 switch step {
                 case "next": studio.next()
+                case "portrait", "landscape": rotate(to: step)
                 case "back": studio.back()
                 case "cue": NotificationCenter.default.post(name: .flipsideDebugCue, object: nil)
                 case "chat": NotificationCenter.default.post(name: .flipsideDebugChat, object: nil)
@@ -61,6 +62,7 @@ enum DebugSnapshot {
                 case "generate": studio.replayGeneration()
                 case "pitch": studio.submit("Build the Flipside pitch")
                 case "next": studio.next()
+                case "portrait", "landscape": rotate(to: step)
                 case "end": studio.endMeeting()
                 case "home": withAnimation(Theme.land) { appState.isHome.toggle() }
                 default: print("[stage] unknown step \(step)")
