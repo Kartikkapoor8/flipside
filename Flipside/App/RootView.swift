@@ -26,10 +26,10 @@ struct RootView: View {
         .persistentSystemOverlays(.hidden)
         .monitorsHinge()
         #if DEBUG
-        .overlay(alignment: .topLeading) {
+        .overlay(alignment: .center) {
+            // Sits on the fold seam, which is the screen centre in both split axes,
+            // so it never covers the presenter header or the slide.
             HingeDebugView()
-                .padding(.top, Brand.Space.s5)
-                .padding(.leading, Brand.Space.s3)
         }
         #endif
     }
