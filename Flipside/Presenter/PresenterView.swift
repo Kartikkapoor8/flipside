@@ -42,16 +42,15 @@ struct PresenterView: View {
                     .overlay(alignment: .top) {
                         SuggestionToast(model: studio).padding(.top, 10)
                     }
-                    .overlay {
-                        // The overlay already has the notes card's size, so no extra frame.
-                        if pointerShown {
-                            PointerSheet(model: studio, shown: $pointerShown)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
-                    }
                 // A wide half keeps the queue as a column even while standing.
                 QueueStrip(model: studio, verticalness: wide ? 1 : morph.queueTurn, namespace: namespace)
                     .deskFrame(frames.queue)
+                if pointerShown {
+                    // The trackpad fills the side under the tabs, over the notes and the queue.
+                    PointerSheet(model: studio, shown: $pointerShown)
+                        .deskFrame(frames.pointer)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
                 DeskBar(model: studio, pointerShown: $pointerShown)
                     .deskFrame(frames.bar)
                     .opacity(frames.barOpacity)
