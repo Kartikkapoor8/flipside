@@ -69,6 +69,7 @@ struct SlideSurface: View {
       if SlideLayoutEngine.hasSideCard(slide) {
         sideCard
       }
+      SceneRegistry.view(for: slide, canvas: size, animated: animated, laser: laser)
       ForEach(SlideLayoutEngine.textElements(for: slide)) { element in
         let frame = SlideLayoutEngine.frame(for: element, in: slide, canvas: size)
         textView(element, frame: frame)
