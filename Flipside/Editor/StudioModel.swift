@@ -100,6 +100,15 @@ final class StudioModel {
   var buildingFromHome = false
   /// One line the home screen shows after an action ("Open your Duo…"). Nil shows the choices only.
   var homeNotice: String?
+  /// Files attached to the next prompt (Ask, Build or a new deck). Cleared once sent.
+  var attachments: [Attachment] = []
+  /// What Flipside remembers about the presenter across decks.
+  var memories: [MemoryItem] = MemoryStore.load()
+  var showMemory = false
+  /// Memory on or off (off: nothing is read or saved).
+  var memoryEnabled: Bool = MemoryStore.isEnabled {
+    didSet { MemoryStore.isEnabled = memoryEnabled }
+  }
   /// Slides fully written in the current build, for the home screen's loading bar.
   var slidesBuilt = 0
   /// A slide is streaming in right now (started but not finished).
@@ -284,16 +293,61 @@ final class StudioModel {
     withAnimation(.snappy(duration: 0.4)) { app.swapSides() }
   }
 
+  // MARK: Memory and attachments
+
+  func remember(_ text: String) {
+    let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard memoryEnabled, !text.isEmpty,
+          !memories.contains(where: { $0.text.caseInsensitiveCompare(text) == .orderedSame }) else { return }
+    memories.append(MemoryItem(text: text))
+    MemoryStore.save(memories)
+  }
+
+  func forget(_ item: MemoryItem) {
+    memories.removeAll { $0.id == item.id }
+    MemoryStore.save(memories)
+  }
+
+  func forgetAll() {
+    memories.removeAll()
+    MemoryStore.save(memories)
+  }
+
+  func attach(_ urls: [URL]) {
+    for url in urls {
+      if let file = Attachment.load(from: url) { attachments.append(file) }
+    }
+  }
+
+  func detach(_ file: Attachment) {
+    attachments.removeAll { $0.id == file.id }
+  }
+
+  /// Memory plus attached files for the next request; the attachments are used up.
+  private func takeContext() -> DeckGenerator.Context {
+    let files = attachments
+    attachments = []
+    return DeckGenerator.Context(memory: memoryEnabled ? MemoryStore.promptBlock(memories) : nil, attachments: files)
+  }
+
   /// A private question about the deck, answered on the presenter's side only.
+  /// "Remember …" saves a memory instead of asking.
   func ask(_ question: String) {
     let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !question.isEmpty, !isAsking else { return }
     prompt = ""
+    let lower = question.lowercased()
+    for prefix in ["remember that ", "remember "] where lower.hasPrefix(prefix) {
+      remember(String(question.dropFirst(prefix.count)))
+      askAnswer = memoryEnabled ? "Got it, I'll remember that." : "Memory is off. Turn it on in Memory to save this."
+      return
+    }
     askAnswer = ""
     isAsking = true
+    let context = takeContext()
     Task { @MainActor in
       do {
-        for try await chunk in DeckGenerator.ask(question, deck: app.deck, currentIndex: app.currentIndex) {
+        for try await chunk in DeckGenerator.ask(question, deck: app.deck, currentIndex: app.currentIndex, context: context) {
           askAnswer += chunk
         }
       } catch {
@@ -481,8 +535,9 @@ final class StudioModel {
     status = "Reading your request"
     var parser = DeckStreamParser()
     var run = RunState()
+    let runContext = takeContext()
     do {
-      for try await chunk in DeckGenerator.stream(prompt: request, deck: app.deck) {
+      for try await chunk in DeckGenerator.stream(prompt: request, deck: app.deck, context: runContext) {
         try Task.checkCancellation()
         let (completed, partial) = parser.feed(chunk)
         for op in completed { apply(op, &run) }
@@ -580,6 +635,10 @@ final class StudioModel {
       app.deck.slides.remove(at: index)
       app.go(to: app.currentIndex)
       run.changed += 1
+
+    case .remember:
+      guard op.complete, let text = op.text else { return }
+      remember(text)
     }
   }
 

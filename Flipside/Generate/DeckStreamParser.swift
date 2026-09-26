@@ -7,9 +7,10 @@ import Foundation
 ///     {"op":"replace","id":"…", …same fields…}         rewrite an existing slide
 ///     {"op":"delete","id":"…"}
 ///     {"op":"say","text":"…"}                         a short reply for the chat
+///     {"op":"remember","text":"…"}                    a durable fact to keep in memory
 struct DeckOp: Equatable {
   enum Kind: String {
-    case deck, add, replace, delete, say
+    case deck, add, replace, delete, say, remember
   }
 
   var kind: Kind

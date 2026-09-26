@@ -77,6 +77,7 @@ struct HomeView: View {
           .foregroundStyle(Theme.textSecondary)
       }
       Spacer()
+      MemoryButton(model: model)
       glassIcon("gearshape", label: "Settings", enabled: true) { model.showSettings = true }
     }
   }
@@ -164,7 +165,7 @@ private struct StartDeckCard: View {
           Text("Start a new deck")
             .font(.system(size: 24, weight: .bold))
             .foregroundStyle(Theme.text)
-          Text("Say or type what you're presenting, or paste a link.")
+          Text("Say or type what you're presenting, paste a link, or attach files.")
             .font(.system(size: 14))
             .foregroundStyle(Theme.textSecondary)
         }
@@ -180,6 +181,7 @@ private struct StartDeckCard: View {
         cornerRadius: 20
       ) {
         VStack(alignment: .leading, spacing: 10) {
+          AttachmentChips(model: model)
           TextField(model.mic.isLive ? "Listening…" : "A realtor listing, a founder pitch, a class…", text: $model.prompt, axis: .vertical)
             .lineLimit(2...4)
             .font(.system(size: 17))
@@ -188,6 +190,7 @@ private struct StartDeckCard: View {
             .submitLabel(.send)
             .onSubmit(send)
           HStack(spacing: 8) {
+            AttachButton(model: model, size: 40)
             Spacer()
             Button { model.mic.toggle() } label: {
               Image(systemName: model.mic.isLive ? "stop.fill" : "mic.fill")
