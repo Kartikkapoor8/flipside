@@ -49,6 +49,7 @@ enum DebugSnapshot {
                 case "next": studio.next()
                 case "back": studio.back()
                 case "cue": NotificationCenter.default.post(name: .flipsideDebugCue, object: nil)
+                case "chat": NotificationCenter.default.post(name: .flipsideDebugChat, object: nil)
                 case "client": studio.insertParkingCard()
                 case "laser": studio.toggleLaser()
                 case "generate": studio.replayGeneration()

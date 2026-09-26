@@ -41,7 +41,10 @@ extension StudioModel {
         }
         send(topic)
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(30))
+            // Back to the cover once the deck has landed, then let real keys through again.
+            try? await Task.sleep(for: .seconds(2))
+            while app.isGenerating { try? await Task.sleep(for: .milliseconds(200)) }
+            select(slide: 0)
             UserDefaults.standard.removeObject(forKey: DeckGenerator.forceDemoKey)
         }
     }

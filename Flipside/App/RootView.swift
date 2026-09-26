@@ -38,9 +38,11 @@ struct RootView: View {
         #endif
         .animation(Theme.land, value: appState.isHome)
         .animation(Theme.fade, value: appState.mode == .ended)
-        .overlay(alignment: .center) {
-            // Sits on the fold seam, which is the screen centre in both split axes.
+        .overlay(alignment: appState.isHome && isFlat && appState.mode != .ended ? .bottom : .center) {
+            // Sits on the fold seam, which is the screen centre in both split axes; the flat home
+            // canvas has no seam, so it drops to the bottom edge.
             HingeDebugView()
+                .padding(.bottom, appState.isHome && isFlat ? 24 : 0)
         }
     }
 

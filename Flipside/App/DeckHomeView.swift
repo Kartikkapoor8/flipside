@@ -40,6 +40,9 @@ struct DeckHomeView: View {
                     .padding(16)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .flipsideDebugChat)) { _ in
+            if chatOpen { withAnimation(HomeMotion.morph) { chatOpen = false } } else { open(speaking: false) }
+        }
         .onChange(of: appState.isGenerating) { _, generating in
             // The deck finished building here: the card becomes the desk.
             guard !generating, startedHere, !appState.deck.slides.isEmpty else { return }
@@ -313,11 +316,11 @@ private struct DeckCard: View {
                     RoundedRectangle(cornerRadius: 12).fill(Theme.sunken)
                 }
             }
-            .frame(width: 76, height: 76)
+            .frame(width: 64, height: 64)
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.line))
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.deck.title)
-                    .font(Brand.Font.display(19))
+                    .font(Brand.Font.display(17))
                     .foregroundStyle(Theme.text)
                     .lineLimit(1)
                 Text("\(item.deck.slides.count) slides · \(item.kind)")
@@ -329,7 +332,7 @@ private struct DeckCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(12)
+        .padding(10)
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 18))
         .hingeHighlight(RoundedRectangle(cornerRadius: 18, style: .continuous), angle: hingeAngle)
         .deskPress(perform: action)
@@ -346,6 +349,8 @@ private struct StatusPill: View {
             Text(label)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Theme.text)
+                .lineLimit(1)
+                .fixedSize()
         }
         .padding(.horizontal, 9).padding(.vertical, 4)
         .background(Capsule().fill(dot.opacity(0.12)))

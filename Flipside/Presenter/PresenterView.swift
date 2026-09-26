@@ -42,7 +42,8 @@ struct PresenterView: View {
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                     }
-                QueueStrip(model: studio, verticalness: morph.queueTurn, namespace: namespace)
+                // A wide half keeps the queue as a column even while standing.
+                QueueStrip(model: studio, verticalness: wide ? 1 : morph.queueTurn, namespace: namespace)
                     .deskFrame(frames.queue)
                 DeskBar(model: studio, pointerShown: $pointerShown)
                     .deskFrame(frames.bar)
@@ -82,6 +83,9 @@ struct PresenterView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .flipsideDebugCue)) { _ in
             fireCue()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .flipsideDebugChat)) { _ in
+            withAnimation(HomeMotion.morph) { chatOpen.toggle() }
         }
     }
 
@@ -150,4 +154,6 @@ struct PaperBackdrop: View {
 extension Notification.Name {
     /// DEBUG: the seam chip posts this to simulate hearing the cue.
     static let flipsideDebugCue = Notification.Name("flipside.debugCue")
+    /// Stage script: opens the chat card (home capsule or desk AI card).
+    static let flipsideDebugChat = Notification.Name("flipside.debugChat")
 }
