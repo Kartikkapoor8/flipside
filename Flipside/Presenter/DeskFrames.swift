@@ -28,6 +28,8 @@ struct DeskMorph: Equatable {
 /// fold (continuous) and a mode change (discrete, animated) drive the same geometry.
 struct DeskFrames: Equatable {
     var aiBar: CGRect
+    /// The section tabs, right under the AI card.
+    var tabs: CGRect
     var notes: CGRect
     var queue: CGRect
     var bar: CGRect
@@ -40,6 +42,7 @@ struct DeskFrames: Equatable {
     static let pad: CGFloat = 12
     static let gap: CGFloat = 10
     static let aiBarHeight: CGFloat = 40
+    static let tabsHeight: CGFloat = 36
     static let barHeight: CGFloat = 48
     static let queueRowHeight: CGFloat = 92
 
@@ -52,7 +55,8 @@ struct DeskFrames: Equatable {
         // Standing layout.
         let aiBar = CGRect(x: inner.minX, y: inner.minY, width: inner.width, height: aiBarHeight)
         let bar = CGRect(x: inner.minX, y: inner.maxY - barHeight, width: inner.width, height: barHeight)
-        let contentTop = aiBar.maxY + gap
+        let tabs = CGRect(x: inner.minX, y: aiBar.maxY + 8, width: inner.width, height: tabsHeight)
+        let contentTop = tabs.maxY + gap
         let contentBottom = bar.minY - gap
 
         let standingQueue: CGRect
@@ -98,6 +102,7 @@ struct DeskFrames: Equatable {
 
         return DeskFrames(
             aiBar: aiBar,
+            tabs: tabs,
             notes: notes,
             queue: queue,
             bar: barShifted,

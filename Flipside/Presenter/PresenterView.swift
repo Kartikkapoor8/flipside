@@ -16,6 +16,8 @@ struct PresenterView: View {
     /// Slide id the cue was heard for, so it fires once per slide.
     @State private var cueMatchedFor: String?
     @State private var advanceTask: Task<Void, Never>?
+    /// Word position in the transcript where the last section jump matched, so a name fires once.
+    @State private var sectionMatchEnd = 0
 
     var body: some View {
         let morph = DeskMorph(foldProgress: appState.foldProgress)
@@ -32,6 +34,8 @@ struct PresenterView: View {
                         .deskFrame(frames.aiBar)
                         .opacity(frames.aiBarOpacity)
                 }
+                SectionStrip(model: studio)
+                    .deskFrame(frames.tabs)
                 NotesCard(model: studio, editing: appState.mode == .edit, cueMatched: cueMatchedFor == studio.current?.id)
                     .matchedGeometryEffect(id: "desk.notes", in: namespace)
                     .deskFrame(frames.notes)
@@ -72,7 +76,10 @@ struct PresenterView: View {
         .clipped()
         .task(id: appState.mode) { await runClock() }
         .task { autoListen() }
-        .onChange(of: studio.mic.transcript) { _, text in checkCue(in: text) }
+        .onChange(of: studio.mic.transcript) { _, text in
+            checkCue(in: text)
+            checkSection(in: text)
+        }
         .onChange(of: appState.isGenerating) { _, generating in
             // Asked the AI mid-pitch and it finished: the card folds back into the AI card.
             if !generating, chatOpen { withAnimation(HomeMotion.morph) { chatOpen = false } }
@@ -99,6 +106,17 @@ struct PresenterView: View {
               cueMatchedFor != slide.id, !slide.cue.isEmpty,
               CueMatcher.matches(cue: slide.cue, transcript: transcript) else { return }
         fireCue()
+    }
+
+    /// "Let's go to the fold": a section name heard after the last jump moves the deck there.
+    private func checkSection(in transcript: String) {
+        guard appState.mode == .present else { return }
+        let sections = appState.deck.sections
+        guard sections.count > 1,
+              let hit = CueMatcher.sectionMatch(in: transcript, sections: sections, after: sectionMatchEnd) else { return }
+        sectionMatchEnd = hit.end
+        guard !hit.section.contains(appState.currentIndex) else { return }
+        studio.select(slide: hit.section.firstIndex)
     }
 
     /// The pill fills, then the deck advances a beat later so the presenter sees it land.

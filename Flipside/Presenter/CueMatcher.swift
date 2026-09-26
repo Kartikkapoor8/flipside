@@ -23,6 +23,28 @@ enum CueMatcher {
         return false
     }
 
+    /// Word index just past the last place `phrase` appears (in order, adjacent) in the transcript.
+    static func lastMatchEnd(of phrase: String, in spoken: [String]) -> Int? {
+        let target = words(phrase)
+        guard !target.isEmpty, spoken.count >= target.count else { return nil }
+        for start in stride(from: spoken.count - target.count, through: 0, by: -1) {
+            if Array(spoken[start..<(start + target.count)]) == target { return start + target.count }
+        }
+        return nil
+    }
+
+    /// The section whose name was spoken most recently, if it was spoken after word `after`.
+    /// Names are matched whole, so "the fold" jumps and "fold" alone inside another name does not.
+    static func sectionMatch(in transcript: String, sections: [DeckSection], after: Int) -> (section: DeckSection, end: Int)? {
+        let spoken = words(transcript)
+        var best: (section: DeckSection, end: Int)?
+        for section in sections {
+            guard let end = lastMatchEnd(of: section.name, in: spoken), end > after else { continue }
+            if best == nil || end > best!.end { best = (section, end) }
+        }
+        return best
+    }
+
     /// The last `count` words of the transcript, for the ticker in the AI bar.
     static func tail(_ transcript: String, count: Int = 7) -> String {
         transcript
