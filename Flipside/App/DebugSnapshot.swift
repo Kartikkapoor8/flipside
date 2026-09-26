@@ -61,9 +61,8 @@ enum DebugSnapshot {
                 case "laser": studio.toggleLaser()
                 case "generate": studio.replayGeneration()
                 case "pitch": studio.submit("Build the Flipside pitch")
-                case "next": studio.next()
-                case "portrait", "landscape": rotate(to: step)
-                case "end": studio.endMeeting()
+                case "end", "ended": studio.endMeeting()
+                case "sent": NotificationCenter.default.post(name: .flipsideDebugSent, object: nil)
                 case "home": withAnimation(Theme.land) { appState.isHome.toggle() }
                 default: print("[stage] unknown step \(step)")
                 }

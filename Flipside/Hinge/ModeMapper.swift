@@ -40,7 +40,10 @@ extension AppState {
     func applyHinge(angle: Double, status: HingeStatus, mapper: ModeMapper = .default) {
         hingeAngle = angle
         hingeStatus = status
-        let next = mapper.mode(forAngle: angle, status: status, previous: mode)
+        var next = mapper.mode(forAngle: angle, status: status, previous: mode)
+        // Closing from Home, or before any deck was opened, is not a meeting ending: nothing shows
+        // and reopening lands on Home.
+        if next == .ended && isHome { next = .present }
         guard next != mode else { return }
         if mode == .ended && next == .present { reset() }
         if next == .ended { laserPoint = nil }

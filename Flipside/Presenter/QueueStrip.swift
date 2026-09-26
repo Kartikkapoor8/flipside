@@ -1,61 +1,59 @@
 import SwiftUI
 
-/// The deck as a queue. Standing, a horizontal strip below the notes: the current card sits at the
-/// leading anchor, upcoming cards run off to the right, played cards sit dimmed to the left.
-/// As the phone lays flat (`verticalness` 0 to 1) the strip turns into a column. Tap to jump,
-/// press and drag to reorder. Thumbnails come from the audience renderer at reduced scale.
+/// The deck as a queue: a plain vertical list of equal cards, 8 point gaps, scrolling when it does
+/// not fit. Current card lit, NEXT on the one after it, played ones dimmed. Tap to jump, press and
+/// drag to reorder. Thumbnails come from the audience renderer at reduced scale.
 struct QueueStrip: View {
     let model: StudioModel
-    /// 0 = horizontal strip, 1 = vertical list. Driven by the fold.
-    var verticalness: Double
     var namespace: Namespace.ID
 
     @State private var dragging: (id: String, offset: CGSize)?
+
+    private let gap: CGFloat = 8
+    static let thumb: CGFloat = 56
 
     var body: some View {
         let slides = model.app.deck.slides
         let current = model.app.currentIndex
         let aspect = max(model.artifactAspect, 0.8)
         let angle = model.app.hingeAngle
-        QueueLayout(verticalness: verticalness, currentIndex: current, aspect: aspect) {
-            // Drawn far to near so the current card ends up on top: a custom Layout paints in order.
-            let order = slides.indices.sorted { abs($0 - current) > abs($1 - current) }
-            ForEach(order, id: \.self) { index in
-                let slide = slides[index]
-                QueueCard(
-                    slide: slide,
-                    index: index,
-                    isCurrent: index == current,
-                    isPast: index < current,
-                    isNext: index == current + 1,
-                    aspect: aspect,
-                    showsTitle: verticalness > 0.6,
-                    hingeAngle: angle
-                )
-                .matchedGeometryEffect(id: "queue.\(slide.id)", in: namespace)
-                // A stack while it is a row: each card steps out from under the one before, a little
-                // lower and smaller, the current card on top and lifted. Flat as the column forms.
-                .scaleEffect(1 - 0.035 * Double(min(abs(index - current), 4)) * (1 - verticalness), anchor: .bottomLeading)
-                .offset(y: (index == current ? -6 : 3 * Double(min(abs(index - current), 4))) * (1 - verticalness))
-                .offset(dragging?.id == slide.id ? dragging!.offset : .zero)
-                .zIndex(dragging?.id == slide.id ? 100 : Double(slides.count - abs(index - current)))
-                .deskPress { model.select(slide: index) }
-                .simultaneousGesture(reorderGesture(for: slide, at: index, aspect: aspect))
-                .layoutValue(key: QueueIndex.self, value: index)
+        let cardHeight = Self.thumb / aspect + 12
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: gap) {
+                    ForEach(Array(slides.enumerated()), id: \.element.id) { index, slide in
+                        QueueCard(
+                            slide: slide,
+                            index: index,
+                            isCurrent: index == current,
+                            isPast: index < current,
+                            isNext: index == current + 1,
+                            aspect: aspect,
+                            hingeAngle: angle
+                        )
+                        .frame(height: cardHeight)
+                        .matchedGeometryEffect(id: "queue.\(slide.id)", in: namespace)
+                        .offset(dragging?.id == slide.id ? dragging!.offset : .zero)
+                        .zIndex(dragging?.id == slide.id ? 1 : 0)
+                        .deskPress { model.select(slide: index) }
+                        .simultaneousGesture(reorderGesture(for: slide, pitch: cardHeight + gap))
+                        .id(slide.id)
+                    }
+                }
+            }
+            .onChange(of: current) { _, i in
+                guard slides.indices.contains(i) else { return }
+                withAnimation(DeskMotion.crossfade) { proxy.scrollTo(slides[i].id, anchor: .center) }
             }
         }
-        // Not clipped: the fanned corners spill a little past the row; the half's edge clips the rest.
         .animation(Theme.land, value: current)
         .animation(DeskMotion.crossfade, value: slides.map(\.id))
         .accessibilityLabel("Slide queue")
     }
 
-    /// Hold, then drag along the strip's main axis. Each card pitch crossed moves the slide one slot.
-    private func reorderGesture(for slide: Slide, at index: Int, aspect: CGFloat) -> some Gesture {
-        let vertical = verticalness > 0.5
-        // Card pitch in the current orientation (see QueueLayout).
-        let pitch: CGFloat = vertical ? (QueueLayout.thumb / aspect + 12 + 8) : ((DeskFrames.queueRowHeight - 12) * aspect + 12) * QueueLayout.fanPitch
-        return LongPressGesture(minimumDuration: 0.25)
+    /// Hold, then drag along the list. Each card pitch crossed moves the slide one slot.
+    private func reorderGesture(for slide: Slide, pitch: CGFloat) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.25)
             .sequenced(before: DragGesture(minimumDistance: 4))
             .onChanged { value in
                 guard case .second(true, let drag?) = value else { return }
@@ -64,8 +62,7 @@ struct QueueStrip: View {
             .onEnded { value in
                 defer { withAnimation(Theme.land) { dragging = nil } }
                 guard case .second(true, let drag?) = value else { return }
-                let travel = vertical ? drag.translation.height : drag.translation.width
-                let steps = Int((travel / pitch).rounded())
+                let steps = Int((drag.translation.height / pitch).rounded())
                 guard steps != 0, let from = model.app.deck.slides.firstIndex(where: { $0.id == slide.id }) else { return }
                 let to = min(max(from + steps, 0), model.app.deck.slides.count - 1)
                 guard to != from else { return }
@@ -81,111 +78,40 @@ private struct QueueCard: View {
     let isPast: Bool
     let isNext: Bool
     let aspect: CGFloat
-    let showsTitle: Bool
     let hingeAngle: Double
 
     var body: some View {
         HStack(spacing: 8) {
             SlideView(slide: slide, animated: false, aspect: aspect, cornerRadius: 6)
+                .frame(width: QueueStrip.thumb)
                 .overlay(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .strokeBorder(isCurrent ? Theme.coral : Theme.line, lineWidth: isCurrent ? 2 : 1)
                 )
                 .overlay(alignment: .topLeading) {
-                    // Keynote's presenter display names the next slide; the rest carry their number.
                     Text(isNext ? "NEXT" : "\(index + 1)")
-                        .font(.system(size: 10, weight: .bold).monospacedDigit())
+                        .font(.system(size: 9, weight: .bold).monospacedDigit())
                         .foregroundStyle(.white)
                         .padding(.horizontal, 5).padding(.vertical, 1)
                         .background(Capsule().fill(isCurrent ? Theme.coral : (isNext ? Theme.ink : Theme.ink.opacity(0.6))))
-                        .padding(4)
+                        .padding(3)
                 }
-            if showsTitle {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(slide.title.isEmpty ? "Untitled" : slide.title)
-                        .font(.system(size: 12, weight: isCurrent ? .bold : .semibold))
-                        .foregroundStyle(isCurrent ? Theme.coral : Theme.text)
-                        .lineLimit(2)
-                    Text(slide.layout.label)
-                        .font(.system(size: 10))
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .transition(.opacity)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(slide.title.isEmpty ? "Untitled" : slide.title)
+                    .font(.system(size: 12, weight: isCurrent ? .bold : .semibold))
+                    .foregroundStyle(isCurrent ? Theme.coral : Theme.text)
+                    .lineLimit(2)
+                Text(slide.layout.label)
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.textSecondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(6)
+        .frame(maxWidth: .infinity)
         .glassEffect(isCurrent ? .regular.tint(Theme.coral.opacity(0.12)).interactive() : .regular.interactive(), in: .rect(cornerRadius: 12))
         .hingeHighlight(RoundedRectangle(cornerRadius: 12, style: .continuous), angle: hingeAngle)
-        // Spotify's queue: the playing card lit, upcoming quieter, played ones faded.
-        .opacity(isPast ? 0.45 : (isCurrent ? 1 : 0.82))
+        .opacity(isPast ? 0.45 : 1)
         .contentShape(RoundedRectangle(cornerRadius: 12))
     }
-}
-
-/// Places every card at a frame interpolated between its row slot and its column slot.
-/// Row: cards of one height side by side, current card at the leading edge. Column: cards stacked,
-/// full width, current card at the top. Past cards sit before the anchor in both.
-struct QueueLayout: Layout {
-    var verticalness: Double
-    var currentIndex: Int
-    var aspect: CGFloat
-
-    var animatableData: Double {
-        get { verticalness }
-        set { verticalness = newValue }
-    }
-
-    private let gap: CGFloat = 8
-    /// Row cards sit 60 percent behind the one before: the pitch is 40 percent of a card's width.
-    static let fanPitch: CGFloat = 0.4
-    /// Column thumbnail width. Spotify keeps the art big enough to recognise.
-    static let thumb: CGFloat = 56
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        CGSize(width: proposal.width ?? 300, height: proposal.height ?? 96)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let v = min(max(verticalness, 0), 1)
-        let count = subviews.count
-        guard count > 0 else { return }
-
-        // Row geometry: card height = bounds height, width from the slide aspect plus padding.
-        let rowH = bounds.height
-        let rowW = (rowH - 12) * aspect + 12
-        // Column geometry: card width = bounds width, thumbnail 56 wide beside a title.
-        let colW = bounds.width
-        let colH: CGFloat = Self.thumb / aspect + 12
-        // Past cards peek in before the anchor: about a third of a card.
-        let rowAnchor = min(CGFloat(currentIndex), 1) * rowW * Self.fanPitch
-        let colAnchor = min(CGFloat(currentIndex), 1) * (colH * 0.35 + gap)
-
-        for view in subviews {
-            let index = view[QueueIndex.self]
-            let offset = CGFloat(index - currentIndex)
-            let rowFrame = CGRect(
-                x: bounds.minX + rowAnchor + offset * rowW * Self.fanPitch,
-                y: bounds.minY,
-                width: rowW, height: rowH
-            )
-            let colFrame = CGRect(
-                x: bounds.minX,
-                y: bounds.minY + colAnchor + offset * (colH + gap),
-                width: colW, height: colH
-            )
-            let frame = CGRect(
-                x: rowFrame.minX + (colFrame.minX - rowFrame.minX) * v,
-                y: rowFrame.minY + (colFrame.minY - rowFrame.minY) * v,
-                width: rowFrame.width + (colFrame.width - rowFrame.width) * v,
-                height: rowFrame.height + (colFrame.height - rowFrame.height) * v
-            )
-            view.place(at: frame.origin, proposal: ProposedViewSize(frame.size))
-        }
-    }
-}
-
-/// The slide index a queue card stands for, since cards are handed to the layout in paint order.
-struct QueueIndex: LayoutValueKey {
-    static let defaultValue = 0
 }

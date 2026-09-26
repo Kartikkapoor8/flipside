@@ -23,8 +23,7 @@ struct PresenterView: View {
     var body: some View {
         let morph = DeskMorph(foldProgress: appState.foldProgress)
         GeometryReader { proxy in
-            // Shape from the half's own geometry: portrait (hinge horizontal) halves are wider than
-            // tall and take the queue as a right column; landscape halves stack it under the notes.
+            // One structure in every pose; the half's shape only changes sizes.
             let wide = proxy.size.width > proxy.size.height
             let frames = DeskFrames.compute(size: proxy.size, wide: wide, morph: morph)
             ZStack(alignment: .topLeading) {
@@ -33,29 +32,30 @@ struct PresenterView: View {
                     AIBar(model: studio, onTap: { withAnimation(HomeMotion.morph) { chatOpen = true } })
                         .matchedGeometryEffect(id: "home.chat", in: namespace)
                         .deskFrame(frames.aiBar)
-                        .opacity(frames.aiBarOpacity)
                 }
                 SectionStrip(model: studio)
                     .deskFrame(frames.tabs)
-                NotesCard(model: studio, editing: appState.mode == .edit, cueMatched: cueMatchedFor == studio.current?.id)
+                QueueStrip(model: studio, namespace: namespace)
+                    .deskFrame(frames.queue)
+                NotesCard(model: studio, editing: false, cueMatched: cueMatchedFor == studio.current?.id, flat: morph.progress)
                     .matchedGeometryEffect(id: "desk.notes", in: namespace)
                     .deskFrame(frames.notes)
                     .overlay(alignment: .top) {
                         SuggestionToast(model: studio).padding(.top, 10)
                     }
-                // A wide half keeps the queue as a column even while standing.
-                QueueStrip(model: studio, verticalness: wide ? 1 : morph.queueTurn, namespace: namespace)
-                    .deskFrame(frames.queue)
+                if appState.hingeStatus == .partiallyOpen && appState.mode == .present {
+                    LiveMonitor(model: studio, namespace: namespace)
+                        .deskFrame(frames.monitor)
+                        .transition(.scale(scale: 0.9).combined(with: .opacity))
+                }
                 if pointerShown {
-                    // The trackpad fills the side under the tabs, over the notes and the queue.
+                    // The trackpad covers the content row.
                     PointerSheet(model: studio, shown: $pointerShown)
                         .deskFrame(frames.pointer)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
                 DeskBar(model: studio, pointerShown: $pointerShown, mediaShown: $mediaShown)
                     .deskFrame(frames.bar)
-                    .opacity(frames.barOpacity)
-                    .allowsHitTesting(frames.barOpacity > 0.5)
                 if mediaShown {
                     MediaDock(model: studio, onClose: { withAnimation(.easeOut(duration: 0.3)) { mediaShown = false } })
                         .frame(width: frames.notes.width)
@@ -63,7 +63,7 @@ struct PresenterView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
                 if chatOpen {
-                    // The chat card grows out of the AI card and sits over the notes.
+                    // The chat card grows out of the AI card and sits over the content.
                     ChatCard(namespace: namespace, onClose: { withAnimation(HomeMotion.morph) { chatOpen = false } }, onSend: { studio.submit($0) })
                         .frame(width: frames.aiBar.width)
                         .offset(x: frames.aiBar.minX, y: frames.aiBar.minY)
@@ -71,14 +71,6 @@ struct PresenterView: View {
                 }
             }
             .animation(HomeMotion.morph, value: chatOpen)
-            .overlay(alignment: .topLeading) {
-                if appState.hingeStatus == .partiallyOpen && appState.mode == .present {
-                    LiveMonitor(model: studio, namespace: namespace)
-                        .deskFrame(frames.monitor)
-                        .opacity(frames.monitorOpacity)
-                        .transition(.scale(scale: 0.9).combined(with: .opacity))
-                }
-            }
             .animation(Theme.fade, value: appState.hingeStatus)
             .animation(Theme.land, value: appState.mode)
         }

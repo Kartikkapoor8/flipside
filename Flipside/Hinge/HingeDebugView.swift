@@ -67,7 +67,8 @@ struct HingeDebugView: View {
                 }
                 key("Closed", "iphone.gen3", tinted: appState.hingeStatus == .closed) { fold(to: 0) }
                 key("Generate", "sparkles") { studio.replayGeneration() }
-                key("End", "xmark.circle.fill") { studio.endMeeting() }
+                key("Ended", "xmark.circle.fill") { studio.endMeeting() }
+                key("Sent", "paperplane.fill") { NotificationCenter.default.post(name: .flipsideDebugSent, object: nil) }
             }
         }
         .padding(6)

@@ -9,6 +9,8 @@ struct NotesCard: View {
     let editing: Bool
     /// True once the cue was heard for this slide: the pill fills.
     let cueMatched: Bool
+    /// 0 standing, 1 flat: the type steps up one size toward flat.
+    var flat: Double = 0
     @Environment(\.isWideFace) private var isWide
 
     var body: some View {
@@ -33,7 +35,7 @@ struct NotesCard: View {
             if !editing, model.app.pendingSuggestion != nil {
                 // Clear of the live monitor, which sits in this corner on a tall half.
                 SuggestionPill(model: model)
-                    .padding(.trailing, !isWide && model.app.hingeStatus == .partiallyOpen ? 124 : 0)
+
             }
         }
         .padding(14)
@@ -55,14 +57,17 @@ struct NotesCard: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } else {
             // ViewThatFits is the minimumScaleFactor here: the first size whose flow fits wins.
+            // Standing, the live monitor sits top trailing, so the flow keeps clear of it.
+            let inset: CGFloat = model.app.hingeStatus == .partiallyOpen ? 124 : 0
             GeometryReader { proxy in
-                let cap = Int(proxy.size.width / 8.5)
+                let cap = Int(proxy.size.width / 8.5) + (flat > 0.5 ? 4 : 0)
                 ViewThatFits(in: .vertical) {
-                    ForEach([34, 30, 27, 24, 21, 18, 16].filter { $0 <= max(cap, 16) }, id: \.self) { size in
+                    ForEach([38, 34, 30, 27, 24, 21, 18, 16].filter { $0 <= max(cap, 16) }, id: \.self) { size in
                         NotesFlow(notes: notes, cue: cue, size: CGFloat(size), matched: cueMatched)
                     }
                 }
             }
+            .padding(.trailing, inset)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .id(model.current?.id)
             // The old notes leave at once; the new ones fade in. Two flows never overlap.
