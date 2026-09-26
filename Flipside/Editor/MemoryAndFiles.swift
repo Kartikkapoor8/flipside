@@ -96,8 +96,27 @@ struct MemorySheet: View {
       List {
         Section {
           Toggle("Use memory", isOn: $model.memoryEnabled)
+          Button {
+            Task { await model.learnFromPastTexts() }
+          } label: {
+            HStack {
+              Label("Learn from past texts", systemImage: "text.book.closed")
+              Spacer()
+              if model.isLearning {
+                ThinkingOrb(state: .searching, size: 20)
+              }
+            }
+          }
+          .disabled(!model.memoryEnabled || model.isLearning)
         } footer: {
-          Text("Flipside keeps short facts about you (your business, audience, style) and uses them in every deck and answer. It saves them when you mention them, or add your own below. Say \"remember …\" in Ask to save one.")
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Flipside keeps short facts about you (your business, audience, style) and uses them in every deck and answer. It updates them on its own from what you type: adding new facts, fixing ones that changed, and dropping duplicates. Add your own below, or say \"remember …\" in Ask.")
+            if let error = model.memoryError {
+              Text(error).foregroundStyle(Theme.coral)
+            } else if let updated = model.memoryUpdatedAt {
+              Text("Last updated \(updated.formatted(.relative(presentation: .named))).")
+            }
+          }
         }
         Section("Add a memory") {
           HStack {

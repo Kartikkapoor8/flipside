@@ -109,6 +109,13 @@ final class StudioModel {
   var memoryEnabled: Bool = MemoryStore.isEnabled {
     didSet { MemoryStore.isEnabled = memoryEnabled }
   }
+  /// The memory learner is reading past texts right now.
+  var isLearning = false
+  var memoryUpdatedAt: Date? = UserDefaults.standard.object(forKey: "memoryUpdatedAt") as? Date {
+    didSet { UserDefaults.standard.set(memoryUpdatedAt, forKey: "memoryUpdatedAt") }
+  }
+  var memoryError: String?
+  @ObservationIgnored private var learnTask: Task<Void, Never>?
   /// Slides fully written in the current build, for the home screen's loading bar.
   var slidesBuilt = 0
   /// A slide is streaming in right now (started but not finished).
@@ -303,6 +310,45 @@ final class StudioModel {
     MemoryStore.save(memories)
   }
 
+  /// Records something the presenter typed and schedules memory to learn from it.
+  func logText(_ text: String) {
+    TextLog.append(text)
+    learnSoon()
+  }
+
+  /// Learns a few seconds after the last text, so a burst of messages is one call.
+  func learnSoon() {
+    learnTask?.cancel()
+    learnTask = Task { @MainActor in
+      try? await Task.sleep(for: .seconds(4))
+      guard !Task.isCancelled else { return }
+      await learnFromPastTexts()
+    }
+  }
+
+  /// Reads every text memory hasn't seen yet and updates memory: adds, rewrites, removes.
+  func learnFromPastTexts() async {
+    guard memoryEnabled, !isLearning else { return }
+    isLearning = true
+    memoryError = nil
+    defer { isLearning = false }
+    let log = TextLog.load()
+    do {
+      guard let result = try await MemoryLearner.learn(memories: memories, log: log) else { return }
+      if result.changed {
+        withAnimation(.snappy) { memories = result.memories }
+        MemoryStore.save(memories)
+      }
+      // Mark what was read, against the latest log in case more texts arrived meanwhile.
+      var latest = TextLog.load()
+      for i in latest.indices where result.learnedIDs.contains(latest[i].id) { latest[i].learned = true }
+      TextLog.save(latest)
+      memoryUpdatedAt = .now
+    } catch {
+      memoryError = error.localizedDescription
+    }
+  }
+
   func forget(_ item: MemoryItem) {
     memories.removeAll { $0.id == item.id }
     MemoryStore.save(memories)
@@ -336,6 +382,7 @@ final class StudioModel {
     let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !question.isEmpty, !isAsking else { return }
     prompt = ""
+    logText(question)
     let lower = question.lowercased()
     for prefix in ["remember that ", "remember "] where lower.hasPrefix(prefix) {
       remember(String(question.dropFirst(prefix.count)))
@@ -502,6 +549,7 @@ final class StudioModel {
     guard !request.isEmpty, generation == nil else { return }
     if mic.isLive { mic.stop() }
     prompt = ""
+    logText(request)
     tab = .ask
     messages.append(ChatMessage(role: .user, text: request))
     messages.append(ChatMessage(role: .assistant, text: buildingFromHome ? Self.openYourDuo : "", isWorking: true))

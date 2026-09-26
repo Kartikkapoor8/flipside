@@ -12,6 +12,10 @@ struct StudioSupport: ViewModifier {
       .background {
         Color.clear.sheet(isPresented: $model.showMemory) { MemorySheet(model: model) }
       }
+      .task {
+        // Catch up on anything typed since memory last learned.
+        await model.learnFromPastTexts()
+      }
       .onChange(of: model.mic.transcript) { _, text in
         if model.mic.isLive, !text.isEmpty { model.prompt = text }
       }

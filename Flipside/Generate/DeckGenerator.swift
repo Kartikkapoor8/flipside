@@ -133,6 +133,54 @@ enum DeckGenerator {
     }
   }
 
+  /// One non-streamed JSON reply, for background jobs like memory learning. Nil without a key.
+  static func completeJSON(system: String, user: String) async throws -> [String: Any]? {
+    var request: URLRequest
+    let body: [String: Any]
+    if let key = Secrets.openAIKey {
+      request = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
+      request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+      var b: [String: Any] = [
+        "model": Secrets.openAIModel,
+        "response_format": ["type": "json_object"],
+        "messages": [["role": "system", "content": system], ["role": "user", "content": user]],
+      ]
+      if ["gpt-5", "o1", "o3", "o4"].contains(where: Secrets.openAIModel.hasPrefix) { b["reasoning_effort"] = "minimal" }
+      body = b
+    } else if let key = Secrets.anthropicKey {
+      request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
+      request.setValue(key, forHTTPHeaderField: "x-api-key")
+      request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+      body = [
+        "model": anthropicModel,
+        "max_tokens": 1024,
+        "system": system + "\nReply with one JSON object only.",
+        "messages": [["role": "user", "content": user]],
+      ]
+    } else {
+      return nil
+    }
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.timeoutInterval = 60
+    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+    let (data, response) = try await URLSession.shared.data(for: request)
+    if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+      throw GenerationError.http(provider: Secrets.openAIKey != nil ? "OpenAI" : "Claude", http.statusCode, String(decoding: data, as: UTF8.self))
+    }
+    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+    let text: String?
+    if let choice = (json["choices"] as? [[String: Any]])?.first {
+      text = (choice["message"] as? [String: Any])?["content"] as? String
+    } else {
+      text = ((json["content"] as? [[String: Any]])?.first)?["text"] as? String
+    }
+    guard let text else { return nil }
+    // Tolerate a code fence or stray prose around the object.
+    guard let start = text.firstIndex(of: "{"), let end = text.lastIndex(of: "}") else { return nil }
+    return try JSONSerialization.jsonObject(with: Data(text[start...end].utf8)) as? [String: Any]
+  }
+
   /// OpenAI Chat Completions with `stream: true`; text arrives in `choices[0].delta.content`.
   private static func streamOpenAI(
     key: String,
