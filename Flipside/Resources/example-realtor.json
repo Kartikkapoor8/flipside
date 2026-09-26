@@ -1,0 +1,50 @@
+{
+  "title": "14 Larkspur Lane",
+  "slides": [
+    {
+      "id": "r-cover",
+      "layout": "cover",
+      "title": "14 Larkspur Lane",
+      "body": "Three beds, a garden that faces west.",
+      "notes": "Thank them for coming. Say the street name, not the listing number.",
+      "cue": "faces west",
+      "durationHint": 20
+    },
+    {
+      "id": "r-light",
+      "layout": "statement",
+      "title": "Light all afternoon.",
+      "body": "The kitchen and the garden take the sun from two until it sets.",
+      "notes": "This is the line they remember. Pause after it.",
+      "cue": "until it sets",
+      "durationHint": 30
+    },
+    {
+      "id": "r-rooms",
+      "layout": "two-column",
+      "title": "What you get",
+      "body": "Three bedrooms, two up\nA study off the hall\nParking for two\nSchool catchment: Hillview",
+      "notes": "Walk the list. Ask which room matters most to them.",
+      "cue": "matters most",
+      "durationHint": 45
+    },
+    {
+      "id": "r-price",
+      "layout": "live",
+      "title": "Offers over 640",
+      "body": "Two viewings booked this week.",
+      "notes": "Give the number once. Then be quiet.",
+      "cue": "this week",
+      "durationHint": 30
+    },
+    {
+      "id": "r-close",
+      "layout": "close",
+      "title": "Want a second look?",
+      "body": "I can hold Saturday morning.",
+      "notes": "Close the phone. The recap is already in their inbox.",
+      "cue": "",
+      "durationHint": 15
+    }
+  ]
+}

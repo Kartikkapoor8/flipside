@@ -3,16 +3,19 @@ import Foundation
 /// Hinge angle to app mode, with hysteresis so a wobbling hand does not flicker between modes.
 ///
 /// - closed status, or under `closedBelow` degrees: `.ended`
-/// - `presentRange` (about 60 to 130, the phone standing on the table): `.present`
-/// - above `editAbove` (about 150, lying nearly flat): `.edit`
+/// - `presentRange` (60 up to fold progress 0.72, the phone standing or leaning): `.present`
+/// - above `editAbove` (fold progress 0.85, about 166 degrees): `.edit`
 /// - anywhere else: keep the previous mode
 ///
-/// `foldProgress` is 0 at 90 degrees (standing) and 1 at 180 (flat), clamped, for the
-/// present-to-edit transition animation.
+/// `foldProgress` is 0 at 90 degrees (standing) and 1 at 180 (flat), clamped. The desk morphs
+/// continuously on it (DeskMorph) and the mode flips at 0.85 with the 0.72 to 0.85 dead band
+/// as hysteresis.
 struct ModeMapper: Sendable {
     var closedBelow: Double = 20
-    var presentRange: ClosedRange<Double> = 60...130
-    var editAbove: Double = 150
+    var presentRange: ClosedRange<Double> = 60...ModeMapper.angle(forProgress: 0.72)
+    var editAbove: Double = ModeMapper.angle(forProgress: 0.85)
+
+    static func angle(forProgress p: Double) -> Double { 90 + 90 * p }
 
     static let `default` = ModeMapper()
 

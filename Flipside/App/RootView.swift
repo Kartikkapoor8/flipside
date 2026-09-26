@@ -1,72 +1,87 @@
 import SwiftUI
 import os
 
-/// The two faces. `ArrangementView` with the split style puts one child on each side of the
-/// fold and publishes `splitArrangementAxis` to them:
+/// The app's one screen. Home when no deck is open; otherwise the two faces across the fold.
 ///
-/// - `.vertical`: halves stacked, hinge horizontal (portrait; laptop and flat poses). Primary is
-///   the top half. Audience on top, presenter below, by default.
-/// - `.horizontal`: halves side by side, hinge vertical (landscape). Primary is the leading half.
-/// - `nil`: not split (the cover display, or a non-folding device). Falls back to a plain stack.
-///
-/// The audience face is rotated 180 in every case so it reads from across the hinge.
-/// `appState.audienceOnLeading` decides which slot holds the audience.
+/// `ArrangementView` with the split style puts one child on each side of the fold and publishes
+/// `splitArrangementAxis` to them: `.vertical` (stacked, hinge horizontal, portrait), `.horizontal`
+/// (side by side, hinge vertical, landscape) or nil (not split). The audience face is drawn
+/// rotated 180 while presenting so it reads from across the table; flat, it is the editable
+/// artifact. `appState.audienceOnLeading` picks which slot holds the audience.
 struct RootView: View {
     @Environment(AppState.self) private var appState
     @Environment(StudioModel.self) private var studio
+    @Namespace private var morph
 
     var body: some View {
-        if studio.layout == .auto {
-            foldSplit
-        } else {
-            // The desk's layout menu pinned side by side or stacked, so Studio lays out the halves itself.
-            StudioView(model: studio, presenting: appState.mode != .edit)
-                .ignoresSafeArea()
-                .statusBarHidden()
-                .persistentSystemOverlays(.hidden)
-                .monitorsHinge()
+        Group {
+            if appState.isHome && isFlat {
+                // One widescreen canvas across both halves.
+                HomeView(part: .canvas, namespace: morph)
+                    .transition(.opacity)
+            } else if studio.layout == .auto {
+                foldSplit
+            } else {
+                // The editor's layout menu pinned side by side or stacked, so Studio lays out the halves itself.
+                StudioView(model: studio, presenting: appState.mode != .edit)
+            }
         }
+        .ignoresSafeArea()
+        .statusBarHidden()
+        .persistentSystemOverlays(.hidden)
+        .monitorsHinge()
+        .animation(Theme.land, value: appState.isHome)
+        #if DEBUG
+        .overlay(alignment: .center) {
+            // Sits on the fold seam, which is the screen centre in both split axes.
+            HingeDebugView()
+        }
+        #endif
     }
 
     /// Follows the fold.
     private var foldSplit: some View {
         ArrangementView {
-            Face(isAudience: appState.audienceOnLeading)
+            Face(isAudience: appState.audienceOnLeading, namespace: morph)
         } secondary: {
-            Face(isAudience: !appState.audienceOnLeading)
+            Face(isAudience: !appState.audienceOnLeading, namespace: morph)
         }
         .arrangementViewStyle(.split)
-        .ignoresSafeArea()
-        .statusBarHidden()
-        .persistentSystemOverlays(.hidden)
-        .monitorsHinge()
-        #if DEBUG
-        .overlay(alignment: .center) {
-            // Sits on the fold seam, which is the screen centre in both split axes,
-            // so it never covers the presenter header or the slide.
-            HingeDebugView()
-        }
-        #endif
+    }
+
+    /// Flat on the table: the fold is inactive and the whole inner display is one canvas.
+    private var isFlat: Bool {
+        appState.hingeStatus == .fullyOpen || appState.hingeAngle >= ModeMapper.angle(forProgress: 0.85)
     }
 }
 
 /// One slot of the split. Reads the axis from the environment (only set inside the
-/// arrangement's children) and hands it down so the presenter can pick a wide or tall layout.
+/// arrangement's children) and hands it down so the desk can pick a wide or tall layout.
 struct Face: View {
     let isAudience: Bool
+    let namespace: Namespace.ID
     @Environment(\.splitArrangementAxis) private var splitAxis
-    @Environment(StudioModel.self) private var studio
     @Environment(AppState.self) private var appState
+    @Environment(StudioModel.self) private var studio
 
     var body: some View {
         Group {
-            if isAudience {
+            if appState.isHome {
+                // Laptop pose: the deck grid on the top half, the topic tile on the bottom half.
+                HomeView(part: isAudience ? .grid : .topic, namespace: namespace)
+            } else if isAudience {
                 StudioAudienceSlot(model: studio)
+            } else if appState.mode == .edit {
+                // Flat: the editor's desk (Editor/) takes the half.
+                PresenterDesk(model: studio, editing: true)
+                    .transition(.opacity)
             } else {
-                PresenterDesk(model: studio, editing: appState.mode == .edit)
+                PresenterView(namespace: namespace)
+                    .transition(.opacity)
             }
         }
         .environment(\.faceAxis, splitAxis)
+        .animation(Theme.fade, value: appState.mode)
         .onAppear { Self.log(splitAxis, isAudience: isAudience) }
         .onChange(of: splitAxis) { _, new in Self.log(new, isAudience: isAudience) }
     }
@@ -80,7 +95,7 @@ struct Face: View {
 }
 
 /// The split axis this face lives in, re-published under our own key so views deeper in the
-/// tree (PresenterView) can read it without depending on where ArrangementView sets it.
+/// tree can read it without depending on where ArrangementView sets it.
 struct FaceAxisKey: EnvironmentKey {
     static let defaultValue: Axis? = nil
 }
@@ -94,26 +109,6 @@ extension EnvironmentValues {
     /// True when this half is wider than it is tall: portrait phone, hinge horizontal.
     /// `nil` axis (unsplit) is treated as wide.
     var isWideFace: Bool { faceAxis != .horizontal }
-}
-
-/// Fills its half with the current slide, scaled to fill the width and rotated 180 degrees for
-/// the person on the other side of the hinge. Overlays (laser dot) go here so they rotate too.
-struct AudienceFace: View {
-    @Environment(AppState.self) private var appState
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                AudienceSlideView(slide: appState.currentSlide)
-                LaserDotView(point: appState.laserPoint)
-            }
-            .frame(width: proxy.size.width, height: proxy.size.height)
-            .clipped()
-            .rotationEffect(.degrees(180))
-        }
-        .background(Brand.Audience.background)
-        .ignoresSafeArea()
-    }
 }
 
 #Preview("Root") {
