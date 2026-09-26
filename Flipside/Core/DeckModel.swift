@@ -26,6 +26,33 @@ enum SlideLayout: String, Codable, CaseIterable, Sendable {
     }
 }
 
+/// Where an element sits on a slide, in normalized slide coordinates (0...1, origin top-left).
+/// Added by the Studio editor for free-move editing.
+struct ElementFrame: Codable, Hashable, Sendable {
+    var x: Double
+    var y: Double
+    /// Width as a fraction of slide width.
+    var width: Double
+    /// Height as a fraction of slide height. Only images use it; text sizes itself.
+    var height: Double = 0
+    var scale: Double = 1
+    var rotation: Double = 0
+}
+
+/// A video, image or animation preset inserted onto a slide from the presenter desk.
+struct SlideMedia: Codable, Hashable, Sendable {
+    enum Kind: String, Codable, Sendable {
+        case image
+        case video
+        case animation
+    }
+
+    var kind: Kind
+    /// Image: a URL or image prompt. Video: a bundled file name or URL. Animation: the preset name.
+    var source: String
+    var title: String
+}
+
 struct Slide: Codable, Identifiable, Hashable, Sendable {
     var id: String
     var layout: SlideLayout
@@ -35,6 +62,18 @@ struct Slide: Codable, Identifiable, Hashable, Sendable {
     var cue: String
     /// Seconds the presenter expects to spend on this slide.
     var durationHint: Int
+
+    // Added by the Studio editor (Audience/Editor). All optional; decks without them decode unchanged.
+    /// Element id ("title", "body.0", "image") to a user-moved frame. Missing means the layout default.
+    var positions: [String: ElementFrame]? = nil
+    /// Element ids the user removed from the slide.
+    var hidden: [String]? = nil
+    /// What the generated picture on this slide should show. Nil means no generated image.
+    var imagePrompt: String? = nil
+    /// Resolved image for `imagePrompt`.
+    var imageURL: String? = nil
+    /// Media inserted from the presenter desk, shown as a card on the crease side.
+    var media: SlideMedia? = nil
 
     init(
         id: String = UUID().uuidString,
@@ -64,6 +103,11 @@ struct Slide: Codable, Identifiable, Hashable, Sendable {
         notes = try c.decodeIfPresent(String.self, forKey: .notes) ?? ""
         cue = try c.decodeIfPresent(String.self, forKey: .cue) ?? ""
         durationHint = try c.decodeIfPresent(Int.self, forKey: .durationHint) ?? 30
+        positions = try? c.decodeIfPresent([String: ElementFrame].self, forKey: .positions)
+        hidden = try? c.decodeIfPresent([String].self, forKey: .hidden)
+        imagePrompt = try? c.decodeIfPresent(String.self, forKey: .imagePrompt)
+        imageURL = try? c.decodeIfPresent(String.self, forKey: .imageURL)
+        media = try? c.decodeIfPresent(SlideMedia.self, forKey: .media)
     }
 }
 
