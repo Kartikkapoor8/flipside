@@ -82,11 +82,9 @@ struct Face: View {
                     .audienceInteractive(studio)
                     .rotationEffect(.degrees(appState.audienceFlipped ? 180 : 0))
                     .animation(.easeInOut(duration: 0.4), value: appState.audienceFlipped)
-            } else if appState.mode == .edit {
-                // Flat: the editor's desk (Editor/) takes the half.
-                PresenterDesk(model: studio, editing: true)
-                    .transition(.opacity)
             } else {
+                // The desk in every pose: flat, the fold morph inside PresenterView has already
+                // turned the queue into a column and widened the notes. No hand-off to Editor/.
                 PresenterView(namespace: namespace)
                     .transition(.opacity)
             }
