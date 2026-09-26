@@ -6,6 +6,7 @@ struct DeskBar: View {
     let model: StudioModel
     @Binding var pointerShown: Bool
     @Binding var mediaShown: Bool
+    @State private var settingsShown = false
 
     var body: some View {
         GlassEffectContainer(spacing: 8) {
@@ -74,9 +75,39 @@ struct DeskBar: View {
                 .foregroundStyle(Theme.text)
                 .glassEffect(.regular.interactive(), in: .capsule)
                 .accessibilityLabel("Swap sides")
+
+                Button {
+                    settingsShown = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 40, height: 40)
+                }
+                .buttonStyle(DeskPressStyle())
+                .foregroundStyle(Theme.text)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .accessibilityLabel("Settings")
             }
         }
         .frame(height: 48)
+        .sheet(isPresented: $settingsShown) {
+            VStack(spacing: 14) {
+                Text("SETTINGS")
+                    .font(.system(size: 10, weight: .bold)).tracking(1.2)
+                    .foregroundStyle(Theme.textSecondary)
+                Text(DeckGenerator.providerLabel)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Theme.text)
+                Button("Close") { settingsShown = false }
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16).frame(height: 36)
+                    .glassEffect(.regular.tint(Theme.ink).interactive(), in: .capsule)
+            }
+            .padding(24)
+            .presentationDetents([.height(180)])
+            .presentationBackground(.thinMaterial)
+        }
     }
 
     private var timer: some View {
