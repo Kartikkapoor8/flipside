@@ -6,16 +6,18 @@ struct GenerateScene: View {
     @State private var step = 0
     @State private var run = 0
 
+    @Environment(\.sceneLive) private var live
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if step >= 1 {
+            if step >= 1 || !live {
                 Text("Alder Street")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Theme.ink)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             ForEach(0..<3, id: \.self) { i in
-                if step >= 2 + i {
+                if step >= 2 + i || !live {
                     Capsule().fill(Theme.ink.opacity(0.18))
                         .frame(width: [180, 140, 110][i], height: 10)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -33,10 +35,11 @@ struct GenerateScene: View {
         .background(Theme.surface.opacity(0.75), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .glassEffect(.regular, in: .rect(cornerRadius: 22))
         .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Theme.ink.opacity(0.1)))
-        .borderBeam(.md, colorVariant: .colorful, strength: 0.9, active: true, cornerRadius: 22)
+        .borderBeam(.md, colorVariant: .colorful, strength: 0.9, active: live, cornerRadius: 22)
         .contentShape(Rectangle())
         .onTapGesture { run += 1 }
         .task(id: run) {
+            guard live else { return }
             while !Task.isCancelled {
                 withAnimation(.easeOut(duration: 0.3)) { step = 0 }
                 try? await Task.sleep(for: .milliseconds(900))

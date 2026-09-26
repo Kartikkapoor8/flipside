@@ -19,6 +19,7 @@ enum SceneRegistry {
             let top = min(title.y + (hasBody ? 0.22 : 0.12), 0.5)
             let height = max(0.95 - top, 0.3)
             SceneSlot(name: name, laser: laser, animated: animated)
+                .environment(\.sceneLive, animated)
                 .frame(width: canvas.width * 0.86, height: canvas.height * height)
                 .position(x: canvas.width * 0.5, y: canvas.height * (top + height / 2))
         }
@@ -57,12 +58,30 @@ private struct SceneSlot: View {
     }
 }
 
-/// Shared idle clock, so every scene breathes on the same slow beat.
+/// Shared idle clock, so every scene breathes on the same slow beat. Thumbnails and the live
+/// monitor are not live: they draw one still frame, so six small copies never animate at once.
 struct SceneClock<Content: View>: View {
     @ViewBuilder var content: (TimeInterval) -> Content
+    @Environment(\.sceneLive) private var live
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30)) { context in
-            content(context.date.timeIntervalSinceReferenceDate)
+        if live {
+            TimelineView(.animation(minimumInterval: 1 / 30)) { context in
+                content(context.date.timeIntervalSinceReferenceDate)
+            }
+        } else {
+            content(0)
         }
+    }
+}
+
+private struct SceneLiveKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    /// False for thumbnails: scenes draw a still and run no timers or entrance tasks.
+    var sceneLive: Bool {
+        get { self[SceneLiveKey.self] }
+        set { self[SceneLiveKey.self] = newValue }
     }
 }

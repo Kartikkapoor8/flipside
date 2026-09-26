@@ -7,10 +7,12 @@ struct FoldScene: View {
     @State private var drag: Double?
     @State private var startAngle: Double = 90
 
+    @Environment(\.sceneLive) private var live
+
     var body: some View {
         SceneClock { t in
             let idle = 90 + 5 * sin(t * 1.1)
-            DuoView(angle: drag ?? (raised ? idle : 180))
+            DuoView(angle: drag ?? (raised || !live ? idle : 180))
         }
         .contentShape(Rectangle())
         .gesture(
@@ -25,6 +27,7 @@ struct FoldScene: View {
                 }
         )
         .task {
+            guard live else { return }
             try? await Task.sleep(for: .milliseconds(200))
             withAnimation(.spring(duration: 0.55, bounce: 0.15)) { raised = true }
         }

@@ -6,6 +6,8 @@ struct ProblemScene: View {
     @State private var shown = 0
     private let labels = ["Realtor", "Founder", "Dentist"]
 
+    @Environment(\.sceneLive) private var live
+
     var body: some View {
         SceneClock { t in
             HStack(spacing: 18) {
@@ -19,12 +21,13 @@ struct ProblemScene: View {
                     }
                     .padding(10)
                     .glassEffect(.regular, in: .rect(cornerRadius: 18))
-                    .opacity(shown > i ? 1 : 0)
-                    .offset(x: shown > i ? 0 : 60)
+                    .opacity(shown > i || !live ? 1 : 0)
+                    .offset(x: shown > i || !live ? 0 : 60)
                 }
             }
         }
         .task {
+            guard live else { return }
             for i in 1...3 {
                 try? await Task.sleep(for: .milliseconds(i == 1 ? 100 : 260))
                 withAnimation(.spring(duration: 0.45, bounce: 0.15)) { shown = i }

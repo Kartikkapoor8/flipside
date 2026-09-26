@@ -7,11 +7,13 @@ struct CoverScene: View {
     @State private var lit = false
     @State private var sweep: Double?
 
+    @Environment(\.sceneLive) private var live
+
     var body: some View {
         SceneClock { t in
             let idle = 90 + 4 * sin(t * 1.1)
             ZStack {
-                if !opened {
+                if !opened && live {
                     HStack(spacing: 3) {
                         RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.coral)
                         RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.violet)
@@ -19,11 +21,12 @@ struct CoverScene: View {
                     .frame(width: 84, height: 84)
                     .transition(.scale(scale: 0.7).combined(with: .opacity))
                 }
-                DuoView(angle: opened ? idle : 0, lit: lit ? 1 : 0.25, sweep: sweep)
-                    .opacity(opened ? 1 : 0)
+                DuoView(angle: opened || !live ? idle : 0, lit: lit || !live ? 1 : 0.25, sweep: sweep)
+                    .opacity(opened || !live ? 1 : 0)
             }
         }
         .task {
+            guard live else { return }
             try? await Task.sleep(for: .milliseconds(150))
             withAnimation(.spring(duration: 0.55, bounce: 0.15)) { opened = true }
             try? await Task.sleep(for: .milliseconds(560))

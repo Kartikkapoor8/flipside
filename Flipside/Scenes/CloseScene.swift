@@ -9,6 +9,8 @@ struct CloseScene: View {
     @State private var faded = false
     @State private var run = 0
 
+    @Environment(\.sceneLive) private var live
+
     var body: some View {
         GeometryReader { proxy in
             let w = proxy.size.width
@@ -35,6 +37,7 @@ struct CloseScene: View {
         .contentShape(Rectangle())
         .onTapGesture { run += 1 }
         .task(id: run) {
+            guard live else { return }
             shut = false; sent = false; bump = false; faded = false
             try? await Task.sleep(for: .milliseconds(500))
             withAnimation(.easeInOut(duration: 0.5)) { shut = true }
