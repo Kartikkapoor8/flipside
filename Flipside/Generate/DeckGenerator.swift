@@ -3,9 +3,21 @@ import Foundation
 /// Streams deck edits from OpenAI (or Claude when only an Anthropic key is set,
 /// or the offline demo writer when there is no key at all).
 enum DeckGenerator {
-  /// Stage control: when set in UserDefaults, the offline writer runs even if a key is configured.
-  static let forceDemoKey = "forceDemoWriter"
   static let anthropicModel = "claude-sonnet-5"
+
+  /// What the model knows beyond the prompt: remembered facts and attached files.
+  struct Context: Sendable {
+    var memory: String?
+    var attachments: [Attachment] = []
+
+    static let none = Context()
+
+    var images: [Data] { attachments.compactMap(\.imageData) }
+
+    func system(_ base: String) -> String {
+      memory.map { base + "\n\n" + $0 } ?? base
+    }
+  }
 
   /// What will write the next deck, for the Settings footer.
   static var providerLabel: String {
@@ -39,14 +51,20 @@ enum DeckGenerator {
   {"op":"add","layout":"cover|statement|two-column|live|close","title":"…","body":["…"],"notes":"…","cue":"…","imagePrompt":"…"}
   {"op":"replace","id":"existing slide id","layout":"…","title":"…","body":["…"],"notes":"…","cue":"…","imagePrompt":"…"}
   {"op":"delete","id":"existing slide id"}
+  {"op":"remember","text":"one durable fact about the presenter"}  when the request reveals something worth \
+  keeping for future decks (their name, company, role, audience, brand or style preferences). Short, third person. \
+  Never remember one-off details of this deck. At most two per reply, after say.
   imagePrompt is optional: a concrete photographic subject for slides that benefit from a picture \
   (at most two per deck, usually two-column or live). Omit it otherwise.
   If the request is a new topic, emit say, then deck, then the adds. If it asks to change the current deck, \
   emit say, then only the replace, add or delete ops needed, and keep untouched slides out of the output.
   """
 
-  static func userMessage(prompt: String, deck: Deck, linkText: String?) -> String {
+  static func userMessage(prompt: String, deck: Deck, linkText: String?, attachments: [Attachment] = []) -> String {
     var parts: [String] = []
+    if let files = Attachment.contextBlock(attachments) {
+      parts.append(files)
+    }
     if !deck.slides.isEmpty {
       let slides = deck.slides.map { slide in
         let body = slide.bodyLines.map { "\"\($0)\"" }.joined(separator: ", ")
@@ -62,18 +80,17 @@ enum DeckGenerator {
   }
 
   /// Text chunks as they stream.
-  static func stream(prompt: String, deck: Deck) -> AsyncThrowingStream<String, Error> {
+  static func stream(prompt: String, deck: Deck, context: Context = .none) -> AsyncThrowingStream<String, Error> {
     AsyncThrowingStream { continuation in
       let task = Task {
         do {
           let link = await LinkReader.text(forFirstLinkIn: prompt)
-          let user = userMessage(prompt: prompt, deck: deck, linkText: link)
-          if UserDefaults.standard.bool(forKey: forceDemoKey) {
-            for try await chunk in DemoWriter.stream(prompt: prompt, deck: deck) { continuation.yield(chunk) }
-          } else if let key = Secrets.openAIKey {
-            try await streamOpenAI(key: key, model: Secrets.openAIModel, system: systemPrompt, user: user, into: continuation)
+          let user = userMessage(prompt: prompt, deck: deck, linkText: link, attachments: context.attachments)
+          let system = context.system(systemPrompt)
+          if let key = Secrets.openAIKey {
+            try await streamOpenAI(key: key, model: Secrets.openAIModel, system: system, user: user, images: context.images, into: continuation)
           } else if let key = Secrets.anthropicKey {
-            try await streamClaude(key: key, system: systemPrompt, user: user, into: continuation)
+            try await streamClaude(key: key, system: system, user: user, images: context.images, into: continuation)
           } else {
             for try await chunk in DemoWriter.stream(prompt: prompt, deck: deck) {
               continuation.yield(chunk)
@@ -89,20 +106,21 @@ enum DeckGenerator {
   }
 
   /// Plain streamed answer, for the desk's Ask tab. Shown on the presenter's side only.
-  static func ask(_ question: String, deck: Deck, currentIndex: Int) -> AsyncThrowingStream<String, Error> {
-    let system = """
+  static func ask(_ question: String, deck: Deck, currentIndex: Int, context: Context = .none) -> AsyncThrowingStream<String, Error> {
+    let base = """
     You are the presenter's private assistant during a live presentation. The audience cannot see your answer. \
     Answer in at most three short sentences, plain text, no markdown. Be concrete and useful right now.
     """
+    let system = context.system(base)
     let current = deck.slides.indices.contains(currentIndex) ? deck.slides[currentIndex].title : "none"
-    let user = userMessage(prompt: question, deck: deck, linkText: nil) + "\n\nCURRENT SLIDE: \(current)"
+    let user = userMessage(prompt: question, deck: deck, linkText: nil, attachments: context.attachments) + "\n\nCURRENT SLIDE: \(current)"
     return AsyncThrowingStream { continuation in
       let task = Task {
         do {
           if let key = Secrets.openAIKey {
-            try await streamOpenAI(key: key, model: Secrets.openAIModel, system: system, user: user, into: continuation)
+            try await streamOpenAI(key: key, model: Secrets.openAIModel, system: system, user: user, images: context.images, into: continuation)
           } else if let key = Secrets.anthropicKey {
-            try await streamClaude(key: key, system: system, user: user, into: continuation)
+            try await streamClaude(key: key, system: system, user: user, images: context.images, into: continuation)
           } else {
             continuation.yield("Add your OpenAI key in Settings and I'll answer questions about this deck here, on your side only.")
           }
@@ -115,12 +133,61 @@ enum DeckGenerator {
     }
   }
 
+  /// One non-streamed JSON reply, for background jobs like memory learning. Nil without a key.
+  static func completeJSON(system: String, user: String) async throws -> [String: Any]? {
+    var request: URLRequest
+    let body: [String: Any]
+    if let key = Secrets.openAIKey {
+      request = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
+      request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+      var b: [String: Any] = [
+        "model": Secrets.openAIModel,
+        "response_format": ["type": "json_object"],
+        "messages": [["role": "system", "content": system], ["role": "user", "content": user]],
+      ]
+      if ["gpt-5", "o1", "o3", "o4"].contains(where: Secrets.openAIModel.hasPrefix) { b["reasoning_effort"] = "minimal" }
+      body = b
+    } else if let key = Secrets.anthropicKey {
+      request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
+      request.setValue(key, forHTTPHeaderField: "x-api-key")
+      request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+      body = [
+        "model": anthropicModel,
+        "max_tokens": 1024,
+        "system": system + "\nReply with one JSON object only.",
+        "messages": [["role": "user", "content": user]],
+      ]
+    } else {
+      return nil
+    }
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.timeoutInterval = 60
+    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+    let (data, response) = try await URLSession.shared.data(for: request)
+    if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+      throw GenerationError.http(provider: Secrets.openAIKey != nil ? "OpenAI" : "Claude", http.statusCode, String(decoding: data, as: UTF8.self))
+    }
+    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+    let text: String?
+    if let choice = (json["choices"] as? [[String: Any]])?.first {
+      text = (choice["message"] as? [String: Any])?["content"] as? String
+    } else {
+      text = ((json["content"] as? [[String: Any]])?.first)?["text"] as? String
+    }
+    guard let text else { return nil }
+    // Tolerate a code fence or stray prose around the object.
+    guard let start = text.firstIndex(of: "{"), let end = text.lastIndex(of: "}") else { return nil }
+    return try JSONSerialization.jsonObject(with: Data(text[start...end].utf8)) as? [String: Any]
+  }
+
   /// OpenAI Chat Completions with `stream: true`; text arrives in `choices[0].delta.content`.
   private static func streamOpenAI(
     key: String,
     model: String,
     system: String,
     user: String,
+    images: [Data] = [],
     lowReasoning: Bool = true,
     into continuation: AsyncThrowingStream<String, Error>.Continuation
   ) async throws {
@@ -134,7 +201,7 @@ enum DeckGenerator {
       "stream": true,
       "messages": [
         ["role": "system", "content": system],
-        ["role": "user", "content": user],
+        ["role": "user", "content": openAIUserContent(user, images: images)],
       ],
     ]
     // Reasoning models start streaming much sooner with minimal reasoning; slides don't need more.
@@ -149,7 +216,7 @@ enum DeckGenerator {
       for try await line in bytes.lines { text += line }
       // Some models reject "minimal"; retry once with their default reasoning.
       if http.statusCode == 400, lowReasoning, text.contains("reasoning") {
-        return try await streamOpenAI(key: key, model: model, system: system, user: user, lowReasoning: false, into: continuation)
+        return try await streamOpenAI(key: key, model: model, system: system, user: user, images: images, lowReasoning: false, into: continuation)
       }
       throw GenerationError.http(provider: "OpenAI", http.statusCode, text)
     }
@@ -169,10 +236,30 @@ enum DeckGenerator {
     }
   }
 
+  /// Plain text, or text plus images as data URLs when files are attached.
+  private static func openAIUserContent(_ text: String, images: [Data]) -> Any {
+    guard !images.isEmpty else { return text }
+    var parts: [[String: Any]] = [["type": "text", "text": text]]
+    for data in images {
+      parts.append(["type": "image_url", "image_url": ["url": "data:image/jpeg;base64,\(data.base64EncodedString())"]])
+    }
+    return parts
+  }
+
+  private static func claudeUserContent(_ text: String, images: [Data]) -> Any {
+    guard !images.isEmpty else { return text }
+    var parts: [[String: Any]] = images.map {
+      ["type": "image", "source": ["type": "base64", "media_type": "image/jpeg", "data": $0.base64EncodedString()]]
+    }
+    parts.append(["type": "text", "text": text])
+    return parts
+  }
+
   private static func streamClaude(
     key: String,
     system: String,
     user: String,
+    images: [Data] = [],
     into continuation: AsyncThrowingStream<String, Error>.Continuation
   ) async throws {
     var request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
@@ -186,7 +273,7 @@ enum DeckGenerator {
       "max_tokens": 4096,
       "stream": true,
       "system": system,
-      "messages": [["role": "user", "content": user]],
+      "messages": [["role": "user", "content": claudeUserContent(user, images: images)]],
     ]
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
 

@@ -9,6 +9,13 @@ struct StudioSupport: ViewModifier {
   func body(content: Content) -> some View {
     content
       .sheet(isPresented: $model.showSettings) { SettingsSheet(model: model) }
+      .background {
+        Color.clear.sheet(isPresented: $model.showMemory) { MemorySheet(model: model) }
+      }
+      .task {
+        // Catch up on anything typed since memory last learned.
+        await model.learnFromPastTexts()
+      }
       .onChange(of: model.mic.transcript) { _, text in
         if model.mic.isLive, !text.isEmpty { model.prompt = text }
       }

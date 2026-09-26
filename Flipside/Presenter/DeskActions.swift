@@ -32,23 +32,6 @@ extension StudioModel {
         }
     }
 
-    /// Replays a deck build through the streaming path. There are no saved runs on disk, so this is
-    /// the offline writer's canned deck, forced even when a key is set so the stage is deterministic.
-    func replayGeneration(topic: String = "A two-bedroom on Alder Street") {
-        UserDefaults.standard.set(true, forKey: DeckGenerator.forceDemoKey)
-        withAnimation(Theme.land) {
-            app.open(Deck(title: topic, slides: []))
-        }
-        send(topic)
-        Task { @MainActor in
-            // Back to the cover once the deck has landed, then let real keys through again.
-            try? await Task.sleep(for: .seconds(2))
-            while app.isGenerating { try? await Task.sleep(for: .milliseconds(200)) }
-            select(slide: 0)
-            UserDefaults.standard.removeObject(forKey: DeckGenerator.forceDemoKey)
-        }
-    }
-
     /// Ends the session without the hinge.
     func endMeeting() {
         withAnimation(Theme.fade) {

@@ -76,11 +76,16 @@ private struct DeskHeader: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       GlassEffectContainer(spacing: 6) {
         HStack(spacing: 6) {
+          glassIcon("house", label: "Home", enabled: true) {
+            ProjectStore.save(model.app.deck, id: model.projectID)
+            withAnimation(.easeInOut(duration: 0.3)) { model.app.isHome = true }
+          }
           if editing {
             LayoutToggle(layout: $model.layout)
             glassIcon("arrow.uturn.backward", label: "Undo", enabled: model.canUndo) { model.undo() }
             glassIcon("arrow.uturn.forward", label: "Redo", enabled: model.canRedo) { model.redo() }
           }
+          MemoryButton(model: model)
           glassIcon("gearshape", label: "Settings", enabled: true) { model.showSettings = true }
         }
       }
@@ -461,6 +466,7 @@ private struct AskTab: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }
+      AttachmentChips(model: model)
       Composer(model: model)
     }
   }
@@ -507,6 +513,8 @@ struct Composer: View {
         .focused($focused)
         .submitLabel(.send)
         .onSubmit(send)
+
+        AttachButton(model: model, size: 32)
 
         Button { model.mic.toggle() } label: {
           Image(systemName: model.mic.isLive ? "stop.fill" : "mic.fill")

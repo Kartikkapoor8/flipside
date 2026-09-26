@@ -96,8 +96,32 @@ final class StudioModel {
 
   /// Which saved project the working deck belongs to (see `ProjectStore`).
   var projectID: String
-  /// Building a new deck that was started from the folded home screen.
+  /// Building a new deck that was started from the home screen.
   var buildingFromHome = false
+  /// One line the home screen shows after an action ("Open your Duo…"). Nil shows the choices only.
+  var homeNotice: String?
+  /// Files attached to the next prompt (Ask, Build or a new deck). Cleared once sent.
+  var attachments: [Attachment] = []
+  /// What Flipside remembers about the presenter across decks.
+  var memories: [MemoryItem] = MemoryStore.load()
+  var showMemory = false
+  /// Memory on or off (off: nothing is read or saved).
+  var memoryEnabled: Bool = MemoryStore.isEnabled {
+    didSet { MemoryStore.isEnabled = memoryEnabled }
+  }
+  /// The memory learner is reading past texts right now.
+  var isLearning = false
+  var memoryUpdatedAt: Date? = UserDefaults.standard.object(forKey: "memoryUpdatedAt") as? Date {
+    didSet { UserDefaults.standard.set(memoryUpdatedAt, forKey: "memoryUpdatedAt") }
+  }
+  var memoryError: String?
+  @ObservationIgnored private var learnTask: Task<Void, Never>?
+  /// Slides fully written in the current build, for the home screen's loading bar.
+  var slidesBuilt = 0
+  /// A slide is streaming in right now (started but not finished).
+  var slideInProgress = false
+  /// When the last build finished, so the loading bar can show a full bar briefly and fade.
+  var buildFinishedAt: Date?
 
   init(app: AppState, projectID: String = ProjectStore.pitchID) {
     self.app = app
@@ -117,8 +141,22 @@ final class StudioModel {
     selection = nil
     editing = nil
     projectID = project.id
+    messages.removeAll()
     app.open(project.deck)
-    messages.append(ChatMessage(role: .assistant, text: "Please open your screen to view your deck."))
+    homeNotice = "Please open your screen to view your deck."
+  }
+
+  /// Opens a deck from an imported file as a new project.
+  func importDeck(_ deck: Deck) {
+    ProjectStore.save(app.deck, id: projectID)
+    cancelGeneration()
+    undoStack.removeAll()
+    redoStack.removeAll()
+    projectID = UUID().uuidString
+    messages.removeAll()
+    app.open(deck)
+    ProjectStore.save(deck, id: projectID)
+    homeNotice = "Please open your screen to view your deck."
   }
 
   /// Starts a new project from the home screen's prompt.
@@ -131,8 +169,10 @@ final class StudioModel {
     selection = nil
     editing = nil
     projectID = UUID().uuidString
+    messages.removeAll()
     app.open(Deck(title: "New deck", slides: []))
     buildingFromHome = true
+    homeNotice = Self.openYourDuo
     askBuilds = true
     send(request)
   }
@@ -260,16 +300,101 @@ final class StudioModel {
     withAnimation(.snappy(duration: 0.4)) { app.swapSides() }
   }
 
+  // MARK: Memory and attachments
+
+  func remember(_ text: String) {
+    let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard memoryEnabled, !text.isEmpty,
+          !memories.contains(where: { $0.text.caseInsensitiveCompare(text) == .orderedSame }) else { return }
+    memories.append(MemoryItem(text: text))
+    MemoryStore.save(memories)
+  }
+
+  /// Records something the presenter typed and schedules memory to learn from it.
+  func logText(_ text: String) {
+    TextLog.append(text)
+    learnSoon()
+  }
+
+  /// Learns a few seconds after the last text, so a burst of messages is one call.
+  func learnSoon() {
+    learnTask?.cancel()
+    learnTask = Task { @MainActor in
+      try? await Task.sleep(for: .seconds(4))
+      guard !Task.isCancelled else { return }
+      await learnFromPastTexts()
+    }
+  }
+
+  /// Reads every text memory hasn't seen yet and updates memory: adds, rewrites, removes.
+  func learnFromPastTexts() async {
+    guard memoryEnabled, !isLearning else { return }
+    isLearning = true
+    memoryError = nil
+    defer { isLearning = false }
+    let log = TextLog.load()
+    do {
+      guard let result = try await MemoryLearner.learn(memories: memories, log: log) else { return }
+      if result.changed {
+        withAnimation(.snappy) { memories = result.memories }
+        MemoryStore.save(memories)
+      }
+      // Mark what was read, against the latest log in case more texts arrived meanwhile.
+      var latest = TextLog.load()
+      for i in latest.indices where result.learnedIDs.contains(latest[i].id) { latest[i].learned = true }
+      TextLog.save(latest)
+      memoryUpdatedAt = .now
+    } catch {
+      memoryError = error.localizedDescription
+    }
+  }
+
+  func forget(_ item: MemoryItem) {
+    memories.removeAll { $0.id == item.id }
+    MemoryStore.save(memories)
+  }
+
+  func forgetAll() {
+    memories.removeAll()
+    MemoryStore.save(memories)
+  }
+
+  func attach(_ urls: [URL]) {
+    for url in urls {
+      if let file = Attachment.load(from: url) { attachments.append(file) }
+    }
+  }
+
+  func detach(_ file: Attachment) {
+    attachments.removeAll { $0.id == file.id }
+  }
+
+  /// Memory plus attached files for the next request; the attachments are used up.
+  private func takeContext() -> DeckGenerator.Context {
+    let files = attachments
+    attachments = []
+    return DeckGenerator.Context(memory: memoryEnabled ? MemoryStore.promptBlock(memories) : nil, attachments: files)
+  }
+
   /// A private question about the deck, answered on the presenter's side only.
+  /// "Remember …" saves a memory instead of asking.
   func ask(_ question: String) {
     let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !question.isEmpty, !isAsking else { return }
     prompt = ""
+    logText(question)
+    let lower = question.lowercased()
+    for prefix in ["remember that ", "remember "] where lower.hasPrefix(prefix) {
+      remember(String(question.dropFirst(prefix.count)))
+      askAnswer = memoryEnabled ? "Got it, I'll remember that." : "Memory is off. Turn it on in Memory to save this."
+      return
+    }
     askAnswer = ""
     isAsking = true
+    let context = takeContext()
     Task { @MainActor in
       do {
-        for try await chunk in DeckGenerator.ask(question, deck: app.deck, currentIndex: app.currentIndex) {
+        for try await chunk in DeckGenerator.ask(question, deck: app.deck, currentIndex: app.currentIndex, context: context) {
           askAnswer += chunk
         }
       } catch {
@@ -424,6 +549,7 @@ final class StudioModel {
     guard !request.isEmpty, generation == nil else { return }
     if mic.isLive { mic.stop() }
     prompt = ""
+    logText(request)
     tab = .ask
     messages.append(ChatMessage(role: .user, text: request))
     messages.append(ChatMessage(role: .assistant, text: buildingFromHome ? Self.openYourDuo : "", isWorking: true))
@@ -450,12 +576,16 @@ final class StudioModel {
     selection = nil
     editing = nil
     app.isGenerating = true
+    slidesBuilt = 0
+    slideInProgress = false
+    buildFinishedAt = nil
     orbState = .searching
     status = "Reading your request"
     var parser = DeckStreamParser()
     var run = RunState()
+    let runContext = takeContext()
     do {
-      for try await chunk in DeckGenerator.stream(prompt: request, deck: app.deck) {
+      for try await chunk in DeckGenerator.stream(prompt: request, deck: app.deck, context: runContext) {
         try Task.checkCancellation()
         let (completed, partial) = parser.feed(chunk)
         for op in completed { apply(op, &run) }
@@ -473,8 +603,11 @@ final class StudioModel {
       }
     }
     app.isGenerating = false
+    slideInProgress = false
+    buildFinishedAt = .now
     orbState = nil
     status = ""
+    if buildingFromHome { homeNotice = "Your deck is ready. Open your Duo." }
     buildingFromHome = false
     ProjectStore.save(app.deck, id: projectID)
   }
@@ -524,6 +657,7 @@ final class StudioModel {
         app.deck.slides.append(slide)
         run.addIndex = app.deck.slides.count - 1
         app.currentIndex = app.deck.slides.count - 1
+        slideInProgress = true
       }
       guard let index = run.addIndex, app.deck.slides.indices.contains(index) else { return }
       fill(&app.deck.slides[index], from: op)
@@ -532,6 +666,8 @@ final class StudioModel {
       if op.complete {
         run.addIndex = nil
         run.built += 1
+        slidesBuilt = run.built
+        slideInProgress = false
       }
 
     case .replace:
@@ -547,6 +683,10 @@ final class StudioModel {
       app.deck.slides.remove(at: index)
       app.go(to: app.currentIndex)
       run.changed += 1
+
+    case .remember:
+      guard op.complete, let text = op.text else { return }
+      remember(text)
     }
   }
 
