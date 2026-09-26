@@ -14,17 +14,27 @@ struct RootView: View {
     @Environment(AppState.self) private var appState
     @Environment(StudioModel.self) private var studio
 
+    /// Folded shut (one screen) or no deck open: the home screen.
+    private var showsHome: Bool {
+        appState.isHome || appState.hingeStatus == .closed
+    }
+
     var body: some View {
-        if studio.layout == .auto {
-            foldSplit
-        } else {
-            // The desk's layout menu pinned side by side or stacked, so Studio lays out the halves itself.
-            StudioView(model: studio, presenting: appState.mode != .edit)
-                .ignoresSafeArea()
-                .statusBarHidden()
-                .persistentSystemOverlays(.hidden)
-                .monitorsHinge()
+        Group {
+            if showsHome {
+                HomeView(model: studio)
+            } else if studio.layout == .auto {
+                foldSplit
+            } else {
+                // The desk's layout menu pinned side by side or stacked, so Studio lays out the halves itself.
+                StudioView(model: studio, presenting: appState.mode != .edit)
+                    .ignoresSafeArea()
+                    .statusBarHidden()
+                    .persistentSystemOverlays(.hidden)
+            }
         }
+        .animation(.easeInOut(duration: 0.3), value: showsHome)
+        .monitorsHinge()
     }
 
     /// Follows the fold.
@@ -38,7 +48,6 @@ struct RootView: View {
         .ignoresSafeArea()
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
-        .monitorsHinge()
     }
 }
 

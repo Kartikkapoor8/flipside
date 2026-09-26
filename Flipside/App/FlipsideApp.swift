@@ -6,10 +6,15 @@ struct FlipsideApp: App {
     @State private var studio: StudioModel
 
     init() {
-        // The last edited deck if there is one (Settings can reload the pitch deck), else the bundled pitch.
-        let state = AppState(deck: DeckStore.load() ?? .bundled())
+        // The last edited project if there is one (Settings can reload the pitch deck), else the bundled pitch.
+        let project = ProjectStore.latest()
+        let state = AppState(deck: project?.deck ?? .bundled())
+        #if DEBUG
+        // `-home YES` opens straight to the home screen, for checking it without folding the phone.
+        if UserDefaults.standard.bool(forKey: "home") { state.isHome = true }
+        #endif
         _appState = State(initialValue: state)
-        _studio = State(initialValue: StudioModel(app: state))
+        _studio = State(initialValue: StudioModel(app: state, projectID: project?.id ?? ProjectStore.pitchID))
     }
 
     var body: some Scene {

@@ -18,7 +18,7 @@ struct StudioSupport: ViewModifier {
         saveTask = Task {
           try? await Task.sleep(for: .milliseconds(600))
           guard !Task.isCancelled else { return }
-          DeckStore.save(deck)
+          ProjectStore.save(deck, id: model.projectID)
         }
       }
   }

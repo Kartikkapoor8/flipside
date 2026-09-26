@@ -94,8 +94,47 @@ final class StudioModel {
   private var redoStack: [Deck] = []
   @ObservationIgnored private var generation: Task<Void, Never>?
 
-  init(app: AppState) {
+  /// Which saved project the working deck belongs to (see `ProjectStore`).
+  var projectID: String
+  /// Building a new deck that was started from the folded home screen.
+  var buildingFromHome = false
+
+  init(app: AppState, projectID: String = ProjectStore.pitchID) {
     self.app = app
+    self.projectID = projectID
+  }
+
+  // MARK: Home
+
+  static let openYourDuo = "Open your Duo. Your deck is building on the inside screen."
+
+  /// Opens a past project from the home screen.
+  func openProject(_ project: Project) {
+    ProjectStore.save(app.deck, id: projectID)
+    cancelGeneration()
+    undoStack.removeAll()
+    redoStack.removeAll()
+    selection = nil
+    editing = nil
+    projectID = project.id
+    app.open(project.deck)
+    messages.append(ChatMessage(role: .assistant, text: "Please open your screen to view your deck."))
+  }
+
+  /// Starts a new project from the home screen's prompt.
+  func startProject(_ request: String) {
+    let request = request.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !request.isEmpty, generation == nil else { return }
+    ProjectStore.save(app.deck, id: projectID)
+    undoStack.removeAll()
+    redoStack.removeAll()
+    selection = nil
+    editing = nil
+    projectID = UUID().uuidString
+    app.open(Deck(title: "New deck", slides: []))
+    buildingFromHome = true
+    askBuilds = true
+    send(request)
   }
 
   var canUndo: Bool { !undoStack.isEmpty }
@@ -387,7 +426,7 @@ final class StudioModel {
     prompt = ""
     tab = .ask
     messages.append(ChatMessage(role: .user, text: request))
-    messages.append(ChatMessage(role: .assistant, text: "", isWorking: true))
+    messages.append(ChatMessage(role: .assistant, text: buildingFromHome ? Self.openYourDuo : "", isWorking: true))
     generation = Task { @MainActor in
       await run(request)
       generation = nil
@@ -436,6 +475,8 @@ final class StudioModel {
     app.isGenerating = false
     orbState = nil
     status = ""
+    buildingFromHome = false
+    ProjectStore.save(app.deck, id: projectID)
   }
 
   private func summary(_ run: RunState) -> String? {
@@ -460,7 +501,12 @@ final class StudioModel {
   private func apply(_ op: DeckOp, _ run: inout RunState) {
     switch op.kind {
     case .say:
-      if let text = op.text { setAssistantText(text) }
+      // From the home screen the chat just tells them to open the phone.
+      if buildingFromHome {
+        setAssistantText(Self.openYourDuo)
+      } else if let text = op.text {
+        setAssistantText(text)
+      }
 
     case .deck:
       if !run.startedDeck {
