@@ -52,8 +52,8 @@ struct PresenterView: View {
                 if chatOpen {
                     // The chat card grows out of the AI card and sits over the notes.
                     ChatCard(namespace: namespace, onClose: { withAnimation(HomeMotion.morph) { chatOpen = false } }, onSend: { studio.send($0) })
-                        .frame(width: frames.notes.width)
-                        .position(x: frames.notes.midX, y: frames.aiBar.minY + (frames.notes.maxY - frames.aiBar.minY) * 0.42)
+                        .frame(width: frames.aiBar.width)
+                        .offset(x: frames.aiBar.minX, y: frames.aiBar.minY)
                         .transition(.opacity)
                 }
             }

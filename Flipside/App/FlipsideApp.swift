@@ -6,8 +6,9 @@ struct FlipsideApp: App {
     @State private var studio: StudioModel
 
     init() {
-        // The last edited project if there is one (Settings can reload the pitch deck), else the bundled pitch.
-        let project = ProjectStore.latest()
+        // Demo-safe: always launch on the bundled pitch. Past projects stay one tap away on the home
+        // screen (`-latest YES` restores launching on the most recent project).
+        let project = UserDefaults.standard.bool(forKey: "latest") ? ProjectStore.latest() : nil
         let state = AppState(deck: project?.deck ?? .bundled())
         #if DEBUG
         // `-home YES` opens straight to the home screen, for checking it without folding the phone.
