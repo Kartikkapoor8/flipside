@@ -9,6 +9,17 @@ struct DeskBar: View {
     var body: some View {
         GlassEffectContainer(spacing: 8) {
             HStack(spacing: 8) {
+                Button {
+                    model.goHome()
+                } label: {
+                    Image(systemName: "house.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 40, height: 40)
+                }
+                .buttonStyle(DeskPressStyle())
+                .foregroundStyle(Theme.text)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .accessibilityLabel("Home")
                 timer
                 Spacer(minLength: 0)
                 Button {
@@ -16,7 +27,7 @@ struct DeskBar: View {
                 } label: {
                     Label("Pointer", systemImage: "hand.point.up.left.fill")
                         .font(.system(size: 13, weight: .semibold))
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, 12)
                         .frame(height: 40)
                 }
                 .buttonStyle(DeskPressStyle())
@@ -29,7 +40,7 @@ struct DeskBar: View {
                 } label: {
                     Label("Flip", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
                         .font(.system(size: 13, weight: .semibold))
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, 12)
                         .frame(height: 40)
                 }
                 .buttonStyle(DeskPressStyle())
@@ -42,7 +53,7 @@ struct DeskBar: View {
                 } label: {
                     Label("Swap", systemImage: "arrow.left.arrow.right")
                         .font(.system(size: 13, weight: .semibold))
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, 12)
                         .frame(height: 40)
                 }
                 .buttonStyle(DeskPressStyle())
@@ -59,6 +70,7 @@ struct DeskBar: View {
             Circle().fill(Theme.coral).frame(width: 6, height: 6)
             Text(PresenterClock.mmss(model.app.elapsed))
                 .font(.system(size: 17, weight: .semibold).monospacedDigit())
+                .fixedSize()
                 .foregroundStyle(Theme.text)
                 .contentTransition(.numericText())
             if let slide = model.current {
@@ -67,8 +79,9 @@ struct DeskBar: View {
                     .foregroundStyle(Theme.textSecondary)
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 12)
         .frame(height: 40)
+        .fixedSize()
         .glassEffect(.regular, in: .capsule)
         .hingeHighlight(Capsule(), angle: model.app.hingeAngle)
         .accessibilityLabel("Timer")

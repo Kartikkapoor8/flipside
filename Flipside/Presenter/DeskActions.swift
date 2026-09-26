@@ -32,6 +32,17 @@ extension StudioModel {
         }
     }
 
+    /// Home from the desk: the session view morphs back into the home screen, deck saved.
+    func goHome() {
+        ProjectStore.save(app.deck, id: projectID)
+        withAnimation(HomeMotion.morph) {
+            app.laserPoint = nil
+            app.clientPoint = nil
+            app.mode = .present
+            app.isHome = true
+        }
+    }
+
     /// Ends the session without the hinge.
     func endMeeting() {
         withAnimation(Theme.fade) {

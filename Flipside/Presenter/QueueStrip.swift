@@ -30,13 +30,18 @@ struct QueueStrip: View {
                     hingeAngle: angle
                 )
                 .matchedGeometryEffect(id: "queue.\(slide.id)", in: namespace)
+                // A hand of cards while it is a row: each one turned a little, the current one on
+                // top and lifted. The turn straightens out as the strip becomes the column.
+                .rotationEffect(.degrees(min(max(Double(index - current), -3), 3) * 2.5 * (1 - verticalness)), anchor: UnitPoint(x: 0.5, y: 1.4))
+                .offset(y: index == current ? -6 * (1 - verticalness) : 0)
+                .scaleEffect(index == current ? 1 + 0.04 * (1 - verticalness) : 1)
                 .offset(dragging?.id == slide.id ? dragging!.offset : .zero)
-                .zIndex(dragging?.id == slide.id ? 1 : 0)
+                .zIndex(dragging?.id == slide.id ? 100 : Double(slides.count - abs(index - current)))
                 .deskPress { model.select(slide: index) }
                 .simultaneousGesture(reorderGesture(for: slide, at: index, aspect: aspect))
             }
         }
-        .clipped()
+        // Not clipped: the fanned corners spill a little past the row; the half's edge clips the rest.
         .animation(Theme.land, value: current)
         .animation(DeskMotion.crossfade, value: slides.map(\.id))
         .accessibilityLabel("Slide queue")
@@ -46,7 +51,7 @@ struct QueueStrip: View {
     private func reorderGesture(for slide: Slide, at index: Int, aspect: CGFloat) -> some Gesture {
         let vertical = verticalness > 0.5
         // Card pitch in the current orientation (see QueueLayout).
-        let pitch: CGFloat = vertical ? (QueueLayout.thumb / aspect + 12 + 8) : ((DeskFrames.queueRowHeight - 12) * aspect + 12 + 8)
+        let pitch: CGFloat = vertical ? (QueueLayout.thumb / aspect + 12 + 8) : ((DeskFrames.queueRowHeight - 12) * aspect + 12) * QueueLayout.fanPitch
         return LongPressGesture(minimumDuration: 0.25)
             .sequenced(before: DragGesture(minimumDistance: 4))
             .onChanged { value in
@@ -129,6 +134,8 @@ struct QueueLayout: Layout {
     }
 
     private let gap: CGFloat = 8
+    /// Row cards sit 60 percent behind the one before: the pitch is 40 percent of a card's width.
+    static let fanPitch: CGFloat = 0.4
     /// Column thumbnail width. Spotify keeps the art big enough to recognise.
     static let thumb: CGFloat = 56
 
@@ -148,13 +155,13 @@ struct QueueLayout: Layout {
         let colW = bounds.width
         let colH: CGFloat = Self.thumb / aspect + 12
         // Past cards peek in before the anchor: about a third of a card.
-        let rowAnchor = min(CGFloat(currentIndex), 1) * (rowW * 0.35 + gap)
+        let rowAnchor = min(CGFloat(currentIndex), 1) * rowW * Self.fanPitch
         let colAnchor = min(CGFloat(currentIndex), 1) * (colH * 0.35 + gap)
 
         for (index, view) in subviews.enumerated() {
             let offset = CGFloat(index - currentIndex)
             let rowFrame = CGRect(
-                x: bounds.minX + rowAnchor + offset * (rowW + gap),
+                x: bounds.minX + rowAnchor + offset * rowW * Self.fanPitch,
                 y: bounds.minY,
                 width: rowW, height: rowH
             )
