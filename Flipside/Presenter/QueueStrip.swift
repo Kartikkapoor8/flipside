@@ -18,7 +18,10 @@ struct QueueStrip: View {
         let aspect = max(model.artifactAspect, 0.8)
         let angle = model.app.hingeAngle
         QueueLayout(verticalness: verticalness, currentIndex: current, aspect: aspect) {
-            ForEach(Array(slides.enumerated()), id: \.element.id) { index, slide in
+            // Drawn far to near so the current card ends up on top: a custom Layout paints in order.
+            let order = slides.indices.sorted { abs($0 - current) > abs($1 - current) }
+            ForEach(order, id: \.self) { index in
+                let slide = slides[index]
                 QueueCard(
                     slide: slide,
                     index: index,
@@ -30,15 +33,15 @@ struct QueueStrip: View {
                     hingeAngle: angle
                 )
                 .matchedGeometryEffect(id: "queue.\(slide.id)", in: namespace)
-                // A hand of cards while it is a row: each one turned a little, the current one on
-                // top and lifted. The turn straightens out as the strip becomes the column.
-                .rotationEffect(.degrees(min(max(Double(index - current), -3), 3) * 2.5 * (1 - verticalness)), anchor: UnitPoint(x: 0.5, y: 1.4))
-                .offset(y: index == current ? -6 * (1 - verticalness) : 0)
-                .scaleEffect(index == current ? 1 + 0.04 * (1 - verticalness) : 1)
+                // A stack while it is a row: each card steps out from under the one before, a little
+                // lower and smaller, the current card on top and lifted. Flat as the column forms.
+                .scaleEffect(1 - 0.035 * Double(min(abs(index - current), 4)) * (1 - verticalness), anchor: .bottomLeading)
+                .offset(y: (index == current ? -6 : 3 * Double(min(abs(index - current), 4))) * (1 - verticalness))
                 .offset(dragging?.id == slide.id ? dragging!.offset : .zero)
                 .zIndex(dragging?.id == slide.id ? 100 : Double(slides.count - abs(index - current)))
                 .deskPress { model.select(slide: index) }
                 .simultaneousGesture(reorderGesture(for: slide, at: index, aspect: aspect))
+                .layoutValue(key: QueueIndex.self, value: index)
             }
         }
         // Not clipped: the fanned corners spill a little past the row; the half's edge clips the rest.
@@ -158,7 +161,8 @@ struct QueueLayout: Layout {
         let rowAnchor = min(CGFloat(currentIndex), 1) * rowW * Self.fanPitch
         let colAnchor = min(CGFloat(currentIndex), 1) * (colH * 0.35 + gap)
 
-        for (index, view) in subviews.enumerated() {
+        for view in subviews {
+            let index = view[QueueIndex.self]
             let offset = CGFloat(index - currentIndex)
             let rowFrame = CGRect(
                 x: bounds.minX + rowAnchor + offset * rowW * Self.fanPitch,
@@ -179,4 +183,9 @@ struct QueueLayout: Layout {
             view.place(at: frame.origin, proposal: ProposedViewSize(frame.size))
         }
     }
+}
+
+/// The slide index a queue card stands for, since cards are handed to the layout in paint order.
+struct QueueIndex: LayoutValueKey {
+    static let defaultValue = 0
 }
