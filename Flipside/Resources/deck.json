@@ -4,24 +4,27 @@
     "layout": "cover",
     "title": "Flipside",
     "body": "The show on their side. The notes on yours.",
-    "notes": "Hi, I'm Kartik. You're looking at the audience side of my phone. I'm looking at my notes. Same phone.",
+    "visual": "The mark, large, centered.",
+    "notes": "You're looking at the audience side of my phone. I'm looking at my notes. Same phone.",
     "cue": "same phone",
     "durationHint": 20
   },
   {
     "id": "pitch",
     "layout": "statement",
-    "title": "Every pitch happens on a phone now.",
-    "body": "A realtor with a listing. A founder in a hallway. Turning your phone around shows them your notes, your texts, everything.",
-    "notes": "Nobody has a tool for the one-on-one pitch. Decks take an afternoon on a laptop.",
-    "cue": "afternoon on a laptop",
+    "title": "Every pitch happens on a phone now",
+    "body": "A realtor. A founder. A doctor. One person across a table.",
+    "visual": "Three small line-drawn scenes in a row: a realtor, a founder and a doctor, each across a table from one person with a phone standing between them.",
+    "notes": "Turn your phone around to show them and they see your notes, your texts, everything. Nobody has a tool for this.",
+    "cue": "tool for this",
     "durationHint": 40
   },
   {
-    "id": "faces",
+    "id": "fold",
     "layout": "two-column",
-    "title": "The Duo has a public face and a private face.",
-    "body": "Stand it up, two faces. Lay it flat, one desk. Fold it shut, done.",
+    "title": "The fold is the wall",
+    "body": "Their slides on one side. Your notes on the other.",
+    "visual": "The phone standing at 90 degrees, two faces labeled Them and You.",
     "notes": "Watch the top half. The hinge drives this, not a button.",
     "cue": "not a button",
     "durationHint": 45
@@ -29,8 +32,9 @@
   {
     "id": "topic",
     "layout": "live",
-    "title": "Say a topic. Get a deck.",
-    "body": "Share a link or a sentence and the slides build while you talk.",
+    "title": "Say a topic, get a deck",
+    "body": "Slides build while you talk.",
+    "visual": "The streaming state: a slide card with the title landed, body lines mid-fade, and a verdigris glow on the border.",
     "notes": "Someone give me a topic.",
     "cue": "give me a topic",
     "durationHint": 90
@@ -38,8 +42,9 @@
   {
     "id": "point",
     "layout": "statement",
-    "title": "Point at things.",
-    "body": "Your finger on your half, a dot on theirs.",
+    "title": "Point at things",
+    "body": "Your finger on your half. A dot on theirs.",
+    "visual": "The phone in laptop pose: a trackpad on the flat half, a red dot on the standing half.",
     "notes": "The flat half is a trackpad for their screen.",
     "cue": "for their screen",
     "durationHint": 30
@@ -47,9 +52,10 @@
   {
     "id": "close",
     "layout": "close",
-    "title": "Close the phone.",
+    "title": "Close the phone",
     "body": "The recap is already in their inbox.",
-    "notes": "Say nothing. Close it. Wait for the buzz.",
+    "visual": "The phone shut, and a recap notification on a second phone.",
+    "notes": "Say nothing. Close it.",
     "cue": "",
     "durationHint": 20
   }

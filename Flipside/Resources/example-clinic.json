@@ -1,0 +1,50 @@
+{
+  "title": "Your knee, explained",
+  "slides": [
+    {
+      "id": "c-cover",
+      "layout": "cover",
+      "title": "Your knee, explained",
+      "body": "What we found and what happens next.",
+      "notes": "Sit beside them, not across. Keep the phone between you.",
+      "cue": "happens next",
+      "durationHint": 20
+    },
+    {
+      "id": "c-found",
+      "layout": "statement",
+      "title": "A small tear in the meniscus.",
+      "body": "Common, and it usually heals without surgery.",
+      "notes": "Say 'common' early. It lowers the temperature.",
+      "cue": "without surgery",
+      "durationHint": 40
+    },
+    {
+      "id": "c-plan",
+      "layout": "two-column",
+      "title": "The plan",
+      "body": "Six weeks of physio\nIce after activity\nNo running until week four\nCheck-in on the twelfth",
+      "notes": "Walk each line. Ask what their week looks like.",
+      "cue": "the twelfth",
+      "durationHint": 45
+    },
+    {
+      "id": "c-when",
+      "layout": "live",
+      "title": "Call if the swelling returns",
+      "body": "Same day. Ask for me.",
+      "notes": "Give them permission to call.",
+      "cue": "ask for me",
+      "durationHint": 20
+    },
+    {
+      "id": "c-close",
+      "layout": "close",
+      "title": "You'll be fine.",
+      "body": "The plan is in your inbox.",
+      "notes": "Close the phone.",
+      "cue": "",
+      "durationHint": 10
+    }
+  ]
+}
