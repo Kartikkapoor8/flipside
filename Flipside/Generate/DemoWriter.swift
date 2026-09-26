@@ -49,7 +49,7 @@ enum DemoWriter {
 
   private static func script(for topic: String) -> String {
     [
-      line(["op": "say", "text": "Offline demo writer: drafting a deck on \(topic). Add your OpenAI key in Settings for real generation."]),
+      line(["op": "say", "text": "Building your deck"]),
       line(["op": "deck", "title": topic]),
       line(["op": "add", "layout": "cover", "title": topic, "body": ["A five-minute tour", "Built live, on a folding phone"], "notes": "Introduce yourself and why \(topic.lowercased()) matters to this room."]),
       line(["op": "add", "layout": "statement", "title": "Why \(topic.lowercased()) matters now", "body": ["The window is open, and it won't stay open."], "notes": "One sentence of context. Then stop talking."]),

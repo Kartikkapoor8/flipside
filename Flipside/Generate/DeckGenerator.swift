@@ -23,7 +23,7 @@ enum DeckGenerator {
   static var providerLabel: String {
     if Secrets.openAIKey != nil { return "OpenAI \(Secrets.openAIModel)" }
     if Secrets.anthropicKey != nil { return "Claude \(anthropicModel)" }
-    return "the offline demo writer"
+    return "Flipside"
   }
 
   /// The house system prompt. If `GENERATION-PROMPT.md` from the assets folder is bundled, it leads;
@@ -122,7 +122,7 @@ enum DeckGenerator {
           } else if let key = Secrets.anthropicKey {
             try await streamClaude(key: key, system: system, user: user, images: context.images, into: continuation)
           } else {
-            continuation.yield("Add your OpenAI key in Settings and I'll answer questions about this deck here, on your side only.")
+            continuation.yield("I can't answer that right now. Keep going, you've got this.")
           }
           continuation.finish()
         } catch {

@@ -163,6 +163,7 @@ final class StudioModel {
   func startProject(_ request: String) {
     let request = request.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !request.isEmpty, generation == nil else { return }
+    if PresetPitch.matches(request) { submitProject(request); return }
     ProjectStore.save(app.deck, id: projectID)
     undoStack.removeAll()
     redoStack.removeAll()
@@ -381,6 +382,7 @@ final class StudioModel {
   func ask(_ question: String) {
     let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !question.isEmpty, !isAsking else { return }
+    if PresetPitch.matches(question) { send(question); return }
     prompt = ""
     logText(question)
     let lower = question.lowercased()
@@ -547,6 +549,7 @@ final class StudioModel {
   func send(_ text: String? = nil) {
     let request = (text ?? prompt).trimmingCharacters(in: .whitespacesAndNewlines)
     guard !request.isEmpty, generation == nil else { return }
+    if PresetPitch.matches(request) { runPitch(request); return }
     if mic.isLive { mic.stop() }
     prompt = ""
     logText(request)

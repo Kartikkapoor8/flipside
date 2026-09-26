@@ -30,7 +30,7 @@ enum PresetPitch {
 
     private static func script(for deck: Deck) -> String {
         var lines: [String] = [
-            line(["op": "say", "text": "Writing the Flipside pitch: \(deck.slides.count) slides, sections for quick jump."]),
+            line(["op": "say", "text": "Building your deck"]),
             line(["op": "deck", "title": deck.title]),
         ]
         for slide in deck.slides {
@@ -60,21 +60,20 @@ enum PresetPitch {
 extension StudioModel {
     /// Chat entry point for the desk and home: the pitch when Flipside is named, otherwise the generator.
     func submit(_ text: String) {
-        let request = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !request.isEmpty else { return }
-        if PresetPitch.matches(request) {
-            let pitch = Deck.bundled()
-            runLocal(request: request, stream: PresetPitch.stream(deck: pitch)) { [weak self] in
-                // Sections and timings come from the file; the stream only carries what the parser reads.
-                guard let self else { return }
-                for (i, slide) in app.deck.slides.enumerated() {
-                    guard let source = pitch.slides.first(where: { $0.id == slide.id }) else { continue }
-                    app.deck.slides[i].section = source.section
-                    app.deck.slides[i].durationHint = source.durationHint
-                }
+        send(text)
+    }
+
+    /// Streams the bundled pitch through the build animation. Called by `send` when Flipside is named.
+    func runPitch(_ request: String) {
+        let pitch = Deck.bundled()
+        runLocal(request: request, stream: PresetPitch.stream(deck: pitch)) { [weak self] in
+            // Sections and timings come from the file; the stream only carries what the parser reads.
+            guard let self else { return }
+            for (i, slide) in app.deck.slides.enumerated() {
+                guard let source = pitch.slides.first(where: { $0.id == slide.id }) else { continue }
+                app.deck.slides[i].section = source.section
+                app.deck.slides[i].durationHint = source.durationHint
             }
-        } else {
-            send(request)
         }
     }
 
@@ -92,7 +91,7 @@ extension StudioModel {
             buildingFromHome = true
             homeNotice = Self.openYourDuo
             askBuilds = true
-            submit(request)
+            runPitch(request)
         } else {
             startProject(request)
         }
