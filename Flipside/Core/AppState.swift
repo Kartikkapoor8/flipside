@@ -48,6 +48,46 @@ final class AppState {
     /// Seconds since the session (or the last `reset()`) began.
     var elapsed: TimeInterval = 0
 
+    /// A card the AI wants to add after the current slide. Direct ones land at once; tentative ones
+    /// wait for the presenter's Add. Added 2026-09-26 for AI approval.
+    struct Suggestion: Identifiable, Equatable, Sendable {
+        enum Kind: Sendable { case direct, tentative }
+        var id: String = UUID().uuidString
+        var title: String
+        var body: String
+        var kind: Kind
+    }
+    var pendingSuggestion: Suggestion?
+    /// The last suggestion that landed as a card, for the presenter's toast.
+    var lastInserted: Suggestion?
+
+    func offer(_ s: Suggestion) {
+        switch s.kind {
+        case .direct:
+            insert(s)
+        case .tentative:
+            pendingSuggestion = s
+        }
+    }
+
+    func approvePending() {
+        guard let s = pendingSuggestion else { return }
+        pendingSuggestion = nil
+        insert(s)
+    }
+
+    func dismissPending() {
+        pendingSuggestion = nil
+    }
+
+    private func insert(_ s: Suggestion) {
+        let card = Slide(id: "suggest-\(s.id.prefix(6))", layout: .statement, title: s.title, body: s.body,
+                         notes: s.body, durationHint: 20)
+        let at = min(currentIndex + 1, deck.slides.count)
+        deck.slides.insert(card, at: at)
+        lastInserted = s
+    }
+
     /// True when no deck is open: the home screen shows instead of the desk and slide.
     /// Added in Block 2 for the home screen. `open(_:)` clears it.
     var isHome: Bool = false
