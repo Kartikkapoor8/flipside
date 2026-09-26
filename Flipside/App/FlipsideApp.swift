@@ -10,10 +10,8 @@ struct FlipsideApp: App {
         // screen (`-latest YES` restores launching on the most recent project).
         let project = UserDefaults.standard.bool(forKey: "latest") ? ProjectStore.latest() : nil
         let state = AppState(deck: project?.deck ?? .bundled())
-        #if DEBUG
-        // `-home YES` opens straight to the home screen, for checking it without folding the phone.
-        if UserDefaults.standard.bool(forKey: "home") { state.isHome = true }
-        #endif
+        // Cold launch lands on Home; the pitch is the first card. `-desk YES` skips straight to the desk.
+        state.isHome = !UserDefaults.standard.bool(forKey: "desk")
         _appState = State(initialValue: state)
         _studio = State(initialValue: StudioModel(app: state, projectID: project?.id ?? ProjectStore.pitchID))
     }

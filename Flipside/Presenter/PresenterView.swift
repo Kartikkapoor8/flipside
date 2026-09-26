@@ -84,6 +84,9 @@ struct PresenterView: View {
         .onReceive(NotificationCenter.default.publisher(for: .flipsideDebugCue)) { _ in
             fireCue()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .flipsideDebugPointer)) { _ in
+            withAnimation(.easeOut(duration: 0.3)) { pointerShown.toggle() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .flipsideDebugChat)) { _ in
             withAnimation(HomeMotion.morph) { chatOpen.toggle() }
         }
@@ -156,4 +159,6 @@ extension Notification.Name {
     static let flipsideDebugCue = Notification.Name("flipside.debugCue")
     /// Stage script: opens the chat card (home capsule or desk AI card).
     static let flipsideDebugChat = Notification.Name("flipside.debugChat")
+    /// Stage script: toggles the pointer sheet.
+    static let flipsideDebugPointer = Notification.Name("flipside.debugPointer")
 }

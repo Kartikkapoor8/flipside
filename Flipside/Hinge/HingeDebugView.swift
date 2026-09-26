@@ -4,16 +4,13 @@ import SwiftUI
 /// when there is no mic and no real hinge. Every button goes through the same code path as the
 /// real event (cue match, hinge callback, insert motion), so what the judges see is the product.
 ///
-/// DEBUG builds always show the chip. Release builds hide it until the seam is triple-tapped.
+/// Hidden until the seam is triple-tapped.
 struct HingeDebugView: View {
     @Environment(AppState.self) private var appState
     @Environment(StudioModel.self) private var studio
     @State private var isExpanded = false
-    #if DEBUG
-    @State private var isVisible = true
-    #else
+    /// Hidden until the seam is triple-tapped, in every build.
     @State private var isVisible = false
-    #endif
 
     var body: some View {
         ZStack {

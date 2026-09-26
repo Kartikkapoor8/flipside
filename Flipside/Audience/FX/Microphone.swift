@@ -43,6 +43,10 @@ final class Microphone {
   }
 
   func start() {
+    #if targetEnvironment(simulator)
+    // No mic on the simulator: stay idle so no permission alert appears; the desk shows its stage transcript.
+    return
+    #endif
     guard !isLive else { return }
     state = .requesting
     transcript = ""

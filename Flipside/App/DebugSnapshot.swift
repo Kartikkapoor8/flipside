@@ -51,6 +51,9 @@ enum DebugSnapshot {
                 case "cue": NotificationCenter.default.post(name: .flipsideDebugCue, object: nil)
                 case "chat": NotificationCenter.default.post(name: .flipsideDebugChat, object: nil)
                 case "flip": withAnimation(.easeInOut(duration: 0.4)) { appState.flipAudience() }
+                case "swap": withAnimation(Theme.land) { appState.swapSides() }
+                case "open": withAnimation(HomeMotion.morph) { studio.projectID = ProjectStore.pitchID; appState.open(.bundled()) }
+                case "pointer": NotificationCenter.default.post(name: .flipsideDebugPointer, object: nil)
                 case "client": studio.insertParkingCard()
                 case "laser": studio.toggleLaser()
                 case "generate": studio.replayGeneration()
