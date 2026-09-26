@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// The strip that says the app is listening: a live waveform, the word Listening, and the last
-/// few words of the transcript rolling through, dimmed. Tap to start or stop the mic.
-/// Same piece on the home screen's topic tile.
+/// The card that says the app is listening: a breathing waveform, the word Listening, and the last
+/// few words heard drifting through, dimmed. Tap to start or stop the mic.
+/// With no mic (the simulator, on stage) it still listens in spirit: the current slide's notes
+/// drift through at speaking pace, so the card never reads as dead. Same piece on the home tile.
 struct AIBar: View {
     let model: StudioModel
     /// Narrower variant for a half-height slot.
@@ -19,11 +20,17 @@ struct AIBar: View {
                 .lineLimit(1)
                 .fixedSize()
                 .contentTransition(.opacity)
-            TranscriptTicker(text: CueMatcher.tail(mic.transcript, count: compact ? 6 : 8), placeholder: placeholder)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if mic.isLive {
+                TranscriptTicker(text: CueMatcher.tail(mic.transcript, count: compact ? 6 : 8), placeholder: "say the cue to advance")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                StageTranscript(source: model.current?.notes ?? "", count: compact ? 6 : 8, placeholder: placeholder)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .padding(.leading, 12).padding(.trailing, 14).padding(.vertical, 8)
         .glassEffect(.regular.interactive(), in: .capsule)
+        .hingeHighlight(Capsule(), angle: model.app.hingeAngle)
         .contentShape(Capsule())
         .onTapGesture { mic.toggle() }
         .animation(Theme.fade, value: mic.isLive)
@@ -34,8 +41,8 @@ struct AIBar: View {
         switch model.mic.state {
         case .live: "Listening"
         case .requesting: "Listening…"
-        case .denied: "Mic off"
-        case .idle: "Listen"
+        case .denied: "Listening"
+        case .idle: "Listening"
         }
     }
 
@@ -43,7 +50,7 @@ struct AIBar: View {
         switch model.mic.state {
         case .live: "say the cue to advance"
         case .requesting: "asking for the mic"
-        case .denied(let why): why
+        case .denied: "mic unavailable, cue from the strip"
         case .idle: "tap to start listening"
         }
     }
@@ -103,5 +110,21 @@ private struct TranscriptTicker: View {
         .truncationMode(.head)
         .clipped()
         .animation(.easeOut(duration: 0.25), value: text)
+    }
+}
+
+/// No mic: walks through the slide's notes at about two words a second, as if it were hearing them.
+private struct StageTranscript: View {
+    let source: String
+    let count: Int
+    let placeholder: String
+
+    var body: some View {
+        let words = source.split(whereSeparator: \.isWhitespace).map(String.init)
+        TimelineView(.periodic(from: .now, by: 0.55)) { context in
+            let n = words.isEmpty ? 0 : Int(context.date.timeIntervalSinceReferenceDate / 0.55) % (words.count + 4)
+            let shown = Array(words.prefix(n).suffix(count)).joined(separator: " ")
+            TranscriptTicker(text: shown, placeholder: placeholder)
+        }
     }
 }

@@ -15,7 +15,10 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if appState.isHome && isFlat {
+            if appState.mode == .ended {
+                // Folded shut, or End pressed: the session is over on every face.
+                MeetingEndedView()
+            } else if appState.isHome && isFlat {
                 // One widescreen canvas across both halves.
                 DeckHomeView(part: .canvas, namespace: morph)
                     .transition(.opacity)
@@ -31,12 +34,11 @@ struct RootView: View {
         .persistentSystemOverlays(.hidden)
         .monitorsHinge()
         .animation(Theme.land, value: appState.isHome)
-        #if DEBUG
+        .animation(Theme.fade, value: appState.mode == .ended)
         .overlay(alignment: .center) {
             // Sits on the fold seam, which is the screen centre in both split axes.
             HingeDebugView()
         }
-        #endif
     }
 
     /// Follows the fold.

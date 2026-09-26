@@ -33,6 +33,7 @@ struct NotesCard: View {
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        .hingeHighlight(RoundedRectangle(cornerRadius: 18, style: .continuous), angle: model.app.hingeAngle)
     }
 
     // MARK: Reading

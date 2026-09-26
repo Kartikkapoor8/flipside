@@ -1,82 +1,97 @@
 import SwiftUI
 
-#if DEBUG
-/// DEBUG only. A small overlay with a slider that fakes the hinge angle, for the simulator when
-/// DeviceHub's pose buttons are out of reach. Tap the angle readout to collapse it to a chip.
-/// Writes through the same `applyHinge` path as the real hinge so the mode mapping is exercised.
+/// The stage strip: a small glass chip on the fold seam that opens into the buttons a demo needs
+/// when there is no mic and no real hinge. Every button goes through the same code path as the
+/// real event (cue match, hinge callback, insert motion), so what the judges see is the product.
+///
+/// DEBUG builds always show the chip. Release builds hide it until the seam is triple-tapped.
 struct HingeDebugView: View {
     @Environment(AppState.self) private var appState
+    @Environment(StudioModel.self) private var studio
     @State private var isExpanded = false
-    @State private var angle: Double = 180
+    #if DEBUG
+    @State private var isVisible = true
+    #else
+    @State private var isVisible = false
+    #endif
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: Brand.Space.s2) {
-            Button {
-                withAnimation(.snappy(duration: 0.2)) { isExpanded.toggle() }
-            } label: {
-                HStack(spacing: Brand.Space.s2) {
-                    Image(systemName: "angle")
-                    Text("\(Int(appState.hingeAngle.rounded()))°")
-                        .monospacedDigit()
-                    Text(appState.mode.rawValue)
-                        .foregroundStyle(Brand.Presenter.accent)
+        ZStack {
+            // The seam itself: a wide, invisible target. Triple tap reveals the chip in release.
+            Color.clear
+                .frame(width: 220, height: 28)
+                .contentShape(Rectangle())
+                .onTapGesture(count: 3) {
+                    withAnimation(Theme.land) { isVisible.toggle(); if !isVisible { isExpanded = false } }
                 }
-                .font(Brand.Font.uiLabel)
-                .padding(.horizontal, Brand.Space.s3)
-                .padding(.vertical, Brand.Space.s2)
-                .background(Brand.Presenter.surface.opacity(0.92), in: Capsule())
-                .foregroundStyle(Brand.Presenter.text)
-            }
-            .buttonStyle(.plain)
-
-            if isExpanded {
-                VStack(alignment: .leading, spacing: Brand.Space.s2) {
-                    Text("FAKE HINGE")
-                        .font(Brand.Font.uiLabel).tracking(1.2)
-                        .foregroundStyle(Brand.Presenter.muted)
-                    Slider(value: $angle, in: 0...180, step: 1) { _ in }
-                        .tint(Brand.Presenter.accent)
-                        .onChange(of: angle) { _, new in
-                            let status: AppState.HingeStatus = new < 5 ? .closed : (new > 175 ? .fullyOpen : .partiallyOpen)
-                            appState.applyHinge(angle: new, status: status)
-                            print("[hinge] fake angle=\(Int(new)) mode=\(appState.mode.rawValue)")
-                        }
-                    HStack(spacing: Brand.Space.s2) {
-                        // Simulates hearing the cue: the pill fills and the deck advances.
-                        Button {
-                            NotificationCenter.default.post(name: .flipsideDebugCue, object: nil)
-                        } label: {
-                            Label("Cue", systemImage: "waveform")
-                                .font(Brand.Font.caption)
-                                .padding(.horizontal, Brand.Space.s3)
-                                .padding(.vertical, Brand.Space.s1)
-                                .background(Brand.Presenter.accent, in: Capsule())
-                                .foregroundStyle(Brand.ink)
-                        }
-                        ForEach([("Closed", 0.0), ("Stand", 90.0), ("Flat", 180.0)], id: \.0) { name, value in
-                            Button(name) { angle = value }
-                                .font(Brand.Font.caption)
-                                .padding(.horizontal, Brand.Space.s3)
-                                .padding(.vertical, Brand.Space.s1)
-                                .background(Brand.Presenter.background, in: Capsule())
-                                .foregroundStyle(Brand.Presenter.text)
-                        }
-                        Spacer()
-                        Button("Home") { withAnimation(Theme.land) { appState.isHome.toggle() } }
-                            .font(Brand.Font.caption)
-                            .foregroundStyle(Brand.Presenter.text)
-                        Text("fold \(String(format: "%.2f", appState.foldProgress))")
-                            .font(Brand.Font.caption)
-                            .foregroundStyle(Brand.Presenter.muted)
+            if isVisible {
+                GlassEffectContainer(spacing: 6) {
+                    VStack(spacing: 6) {
+                        chip
+                        if isExpanded { strip.transition(.scale(scale: 0.96).combined(with: .opacity)) }
                     }
                 }
-                .padding(Brand.Space.s3)
-                .frame(width: 260)
-                .background(Brand.Presenter.surface.opacity(0.95), in: RoundedRectangle(cornerRadius: Brand.Radius.card, style: .continuous))
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .transition(.opacity)
             }
         }
-        .onAppear { angle = appState.hingeAngle }
+        .animation(Theme.land, value: isExpanded)
+    }
+
+    private var chip: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "angle")
+            Text("\(Int(appState.hingeAngle.rounded()))°").monospacedDigit().contentTransition(.numericText())
+            Text(appState.mode.rawValue).foregroundStyle(Theme.coral)
+            Image(systemName: isExpanded ? "chevron.up" : "chevron.down").font(.system(size: 9, weight: .bold))
+        }
+        .font(.system(size: 11, weight: .semibold))
+        .foregroundStyle(Theme.text)
+        .padding(.horizontal, 10).padding(.vertical, 5)
+        .glassEffect(.regular.interactive(), in: .capsule)
+        .deskPress { isExpanded.toggle() }
+        .accessibilityLabel("Stage controls")
+    }
+
+    private var strip: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 6) {
+                key("Back", "chevron.left") { studio.back() }
+                key("Next", "chevron.right") { studio.next() }
+                key("Cue heard", "waveform") { NotificationCenter.default.post(name: .flipsideDebugCue, object: nil) }
+                key("Client asked", "bubble.left.fill") { studio.insertParkingCard() }
+                key(appState.laserPoint == nil ? "Laser on" : "Laser off", "scope", tinted: appState.laserPoint != nil) { studio.toggleLaser() }
+            }
+            HStack(spacing: 6) {
+                ForEach([("90", 90.0), ("135", 135.0), ("180", 180.0)], id: \.0) { name, value in
+                    key("Fold \(name)", "angle", tinted: Int(appState.hingeAngle.rounded()) == Int(value)) { fold(to: value) }
+                }
+                key("Closed", "iphone.gen3", tinted: appState.hingeStatus == .closed) { fold(to: 0) }
+                key("Generate", "sparkles") { studio.replayGeneration() }
+                key("End", "xmark.circle.fill") { studio.endMeeting() }
+            }
+        }
+        .padding(6)
+        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+    }
+
+    private func key(_ title: String, _ symbol: String, tinted: Bool = false, action: @escaping () -> Void) -> some View {
+        Label(title, systemImage: symbol)
+            .font(.system(size: 11, weight: .semibold))
+            .lineLimit(1)
+            .fixedSize()
+            .foregroundStyle(tinted ? .white : Theme.text)
+            .padding(.horizontal, 9).frame(height: 30)
+            .glassEffect(tinted ? .regular.tint(Theme.coral).interactive() : .regular.interactive(), in: .capsule)
+            .deskPress(perform: action)
+    }
+
+    /// Writes the angle straight into the same path the hinge callback uses, so the mode mapper,
+    /// the morph and the ended state all run without DeviceHub.
+    private func fold(to angle: Double) {
+        let status: AppState.HingeStatus = angle < 5 ? .closed : (angle >= 178 ? .fullyOpen : .partiallyOpen)
+        withAnimation(.easeInOut(duration: 0.55)) {
+            appState.applyHinge(angle: angle, status: status)
+        }
+        print("[hinge] stage angle=\(Int(angle)) status=\(status.rawValue) mode=\(appState.mode.rawValue)")
     }
 }
-#endif

@@ -3,6 +3,8 @@ import Foundation
 /// Streams deck edits from OpenAI (or Claude when only an Anthropic key is set,
 /// or the offline demo writer when there is no key at all).
 enum DeckGenerator {
+  /// Stage control: when set in UserDefaults, the offline writer runs even if a key is configured.
+  static let forceDemoKey = "forceDemoWriter"
   static let anthropicModel = "claude-sonnet-5"
 
   /// What will write the next deck, for the Settings footer.
@@ -66,7 +68,9 @@ enum DeckGenerator {
         do {
           let link = await LinkReader.text(forFirstLinkIn: prompt)
           let user = userMessage(prompt: prompt, deck: deck, linkText: link)
-          if let key = Secrets.openAIKey {
+          if UserDefaults.standard.bool(forKey: forceDemoKey) {
+            for try await chunk in DemoWriter.stream(prompt: prompt, deck: deck) { continuation.yield(chunk) }
+          } else if let key = Secrets.openAIKey {
             try await streamOpenAI(key: key, model: Secrets.openAIModel, system: systemPrompt, user: user, into: continuation)
           } else if let key = Secrets.anthropicKey {
             try await streamClaude(key: key, system: systemPrompt, user: user, into: continuation)

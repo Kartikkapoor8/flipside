@@ -57,6 +57,7 @@ struct DeskBar: View {
         .padding(.horizontal, 14)
         .frame(height: 40)
         .glassEffect(.regular, in: .capsule)
+        .hingeHighlight(Capsule(), angle: model.app.hingeAngle)
         .accessibilityLabel("Timer")
     }
 }
