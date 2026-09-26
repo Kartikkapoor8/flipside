@@ -34,7 +34,7 @@ struct AIBar: View {
         .glassEffect(.regular.interactive(), in: .capsule)
         .hingeHighlight(Capsule(), angle: model.app.hingeAngle)
         .contentShape(Capsule())
-        .onTapGesture { if let onTap { onTap() } else { mic.toggle() } }
+        .deskPress { if let onTap { onTap() } else { mic.toggle() } }
         .animation(Theme.fade, value: mic.isLive)
         .accessibilityLabel(mic.isLive ? "Listening. Tap to stop." : "Tap to listen")
     }

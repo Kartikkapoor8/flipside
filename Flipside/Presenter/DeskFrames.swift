@@ -44,7 +44,7 @@ struct DeskFrames: Equatable {
     static let aiBarHeight: CGFloat = 40
     static let tabsHeight: CGFloat = 36
     static let barHeight: CGFloat = 48
-    static let queueRowHeight: CGFloat = 92
+    static let queueRowHeight: CGFloat = 112
 
     /// - wide: the half is wider than tall (portrait phone, hinge horizontal). Then the queue is a
     ///   column on the right while standing. Tall halves (hinge vertical) put it under the notes.
@@ -63,7 +63,7 @@ struct DeskFrames: Equatable {
         let standingNotes: CGRect
         let monitor: CGRect
         if wide {
-            let column: CGFloat = max(min(W * 0.26, 190), 150)
+            let column: CGFloat = max(min(W * 0.28, 210), 164)
             let monitorH: CGFloat = column * 0.78
             monitor = CGRect(x: inner.maxX - column, y: contentTop, width: column, height: monitorH)
             standingQueue = CGRect(x: inner.maxX - column, y: contentTop + monitorH + gap, width: column, height: contentBottom - contentTop - monitorH - gap)
@@ -78,7 +78,7 @@ struct DeskFrames: Equatable {
 
         // Flat (edit) layout: the queue is a list column on the leading side, the notes take the rest
         // down to the bottom edge; the bar is gone.
-        let listColumn: CGFloat = wide ? 200 : 132
+        let listColumn: CGFloat = wide ? 220 : 150
         let flatQueue = CGRect(x: inner.minX, y: contentTop, width: listColumn, height: inner.maxY - contentTop)
         let flatNotes = CGRect(x: inner.minX + listColumn + gap, y: contentTop, width: inner.width - listColumn - gap, height: inner.maxY - contentTop)
 

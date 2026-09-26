@@ -44,15 +44,15 @@ struct NotesCard: View {
         let cue = model.current?.cue ?? ""
         if notes.isEmpty {
             Text("No notes for this slide.")
-                .font(Brand.Font.display(22))
+                .font(Brand.Font.display(24))
                 .foregroundStyle(Theme.textSecondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } else {
             // ViewThatFits is the minimumScaleFactor here: the first size whose flow fits wins.
             GeometryReader { proxy in
-                let cap = Int(proxy.size.width / 9.5)
+                let cap = Int(proxy.size.width / 8.5)
                 ViewThatFits(in: .vertical) {
-                    ForEach([34, 30, 27, 24, 21, 18, 16].filter { $0 <= max(cap, 16) }, id: \.self) { size in
+                    ForEach([38, 34, 30, 27, 24, 21, 18].filter { $0 <= max(cap, 18) }, id: \.self) { size in
                         NotesFlow(notes: notes, cue: cue, size: CGFloat(size), matched: cueMatched)
                     }
                 }
@@ -71,13 +71,13 @@ struct NotesCard: View {
             get: { model.current?.notes ?? "" },
             set: { v in model.updateCurrent { $0.notes = v } }
         ))
-        .font(Brand.Font.display(22))
+        .font(Brand.Font.display(24))
         .foregroundStyle(Theme.text)
         .scrollContentBackground(.hidden)
         .overlay(alignment: .topLeading) {
             if (model.current?.notes ?? "").isEmpty {
                 Text("What you'll say on this slide")
-                    .font(Brand.Font.display(22))
+                    .font(Brand.Font.display(24))
                     .foregroundStyle(Theme.textSecondary)
                     .padding(.top, 8).padding(.leading, 5)
                     .allowsHitTesting(false)

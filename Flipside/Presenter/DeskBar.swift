@@ -19,7 +19,7 @@ struct DeskBar: View {
                         .padding(.horizontal, 14)
                         .frame(height: 40)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(DeskPressStyle())
                 .foregroundStyle(pointerShown ? .white : Theme.text)
                 .glassEffect(pointerShown ? .regular.tint(Theme.coral).interactive() : .regular.interactive(), in: .capsule)
                 .accessibilityLabel(pointerShown ? "Hide pointer" : "Show pointer")
@@ -32,7 +32,7 @@ struct DeskBar: View {
                         .padding(.horizontal, 14)
                         .frame(height: 40)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(DeskPressStyle())
                 .foregroundStyle(model.app.audienceFlipped ? .white : Theme.text)
                 .glassEffect(model.app.audienceFlipped ? .regular.tint(Theme.coral).interactive() : .regular.interactive(), in: .capsule)
                 .accessibilityLabel(model.app.audienceFlipped ? "Audience upright" : "Flip audience")
@@ -45,7 +45,7 @@ struct DeskBar: View {
                         .padding(.horizontal, 14)
                         .frame(height: 40)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(DeskPressStyle())
                 .foregroundStyle(Theme.text)
                 .glassEffect(.regular.interactive(), in: .capsule)
                 .accessibilityLabel("Swap sides")
@@ -79,5 +79,14 @@ enum PresenterClock {
     static func mmss(_ t: TimeInterval) -> String {
         let s = max(0, Int(t.rounded(.down)))
         return String(format: "%02d:%02d", s / 60, s % 60)
+    }
+}
+
+/// Bar buttons scale like the cards while pressed, on the same spring.
+struct DeskPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
+            .animation(.spring(duration: 0.28, bounce: 0.35), value: configuration.isPressed)
     }
 }
