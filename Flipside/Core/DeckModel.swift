@@ -74,6 +74,9 @@ struct Slide: Codable, Identifiable, Hashable, Sendable {
     var imageURL: String? = nil
     /// Media inserted from the presenter desk, shown as a card on the crease side.
     var media: SlideMedia? = nil
+    /// Section this slide belongs to ("The fold"). Consecutive slides sharing one form a tab on the
+    /// desk; slides without one stand alone under their title. Added 2026-09-26 for quick jump.
+    var section: String? = nil
 
     init(
         id: String = UUID().uuidString,
@@ -108,6 +111,7 @@ struct Slide: Codable, Identifiable, Hashable, Sendable {
         imagePrompt = try? c.decodeIfPresent(String.self, forKey: .imagePrompt)
         imageURL = try? c.decodeIfPresent(String.self, forKey: .imageURL)
         media = try? c.decodeIfPresent(SlideMedia.self, forKey: .media)
+        section = try? c.decodeIfPresent(String.self, forKey: .section)
     }
 }
 
