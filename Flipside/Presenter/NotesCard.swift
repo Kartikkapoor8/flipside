@@ -49,9 +49,12 @@ struct NotesCard: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } else {
             // ViewThatFits is the minimumScaleFactor here: the first size whose flow fits wins.
-            ViewThatFits(in: .vertical) {
-                ForEach([34, 30, 27, 24, 21, 18, 16], id: \.self) { size in
-                    NotesFlow(notes: notes, cue: cue, size: CGFloat(size), matched: cueMatched)
+            GeometryReader { proxy in
+                let cap = Int(proxy.size.width / 9.5)
+                ViewThatFits(in: .vertical) {
+                    ForEach([34, 30, 27, 24, 21, 18, 16].filter { $0 <= max(cap, 16) }, id: \.self) { size in
+                        NotesFlow(notes: notes, cue: cue, size: CGFloat(size), matched: cueMatched)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

@@ -98,11 +98,7 @@ private struct TranscriptTicker: View {
             } else {
                 Text(text)
                     .foregroundStyle(Theme.textSecondary)
-                    .id(text)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .opacity
-                    ))
+                    .contentTransition(.opacity)
             }
         }
         .font(.system(size: 12))

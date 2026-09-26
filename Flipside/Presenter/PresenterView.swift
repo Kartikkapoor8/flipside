@@ -18,7 +18,10 @@ struct PresenterView: View {
     var body: some View {
         let morph = DeskMorph(foldProgress: appState.foldProgress)
         GeometryReader { proxy in
-            let frames = DeskFrames.compute(size: proxy.size, wide: isWide, morph: morph)
+            // Shape from the half's own geometry: portrait (hinge horizontal) halves are wider than
+            // tall and take the queue as a right column; landscape halves stack it under the notes.
+            let wide = proxy.size.width > proxy.size.height
+            let frames = DeskFrames.compute(size: proxy.size, wide: wide, morph: morph)
             ZStack(alignment: .topLeading) {
                 PaperBackdrop()
                 AIBar(model: studio)
@@ -41,12 +44,11 @@ struct PresenterView: View {
                     .opacity(frames.barOpacity)
                     .allowsHitTesting(frames.barOpacity > 0.5)
             }
-            .overlay(alignment: .topTrailing) {
+            .overlay(alignment: .topLeading) {
                 if appState.hingeStatus == .partiallyOpen && appState.mode == .present {
                     LiveMonitor(model: studio, namespace: namespace)
-                        .frame(width: isWide ? 150 : 128)
-                        .padding(.top, DeskFrames.pad + DeskFrames.aiBarHeight + 6)
-                        .padding(.trailing, DeskFrames.pad + 4)
+                        .deskFrame(frames.monitor)
+                        .opacity(frames.monitorOpacity)
                         .transition(.scale(scale: 0.9).combined(with: .opacity))
                 }
             }

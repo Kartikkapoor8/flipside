@@ -34,7 +34,7 @@ struct RootView: View {
         .persistentSystemOverlays(.hidden)
         .monitorsHinge()
         #if DEBUG
-        .task { await DebugSnapshot.runFoldScript(appState) }
+        .task { await DebugSnapshot.runFoldScript(appState, studio: studio) }
         #endif
         .animation(Theme.land, value: appState.isHome)
         .animation(Theme.fade, value: appState.mode == .ended)

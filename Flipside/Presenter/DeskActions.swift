@@ -78,6 +78,8 @@ struct MeetingEndedView: View {
             .padding(.horizontal, 28).padding(.vertical, 24)
             .glassEffect(.regular, in: .rect(cornerRadius: 22))
             .hingeHighlight(RoundedRectangle(cornerRadius: 22, style: .continuous), angle: appState.hingeAngle)
+            // Clear of the seam chip, which sits at the exact centre.
+            .offset(y: -150)
         }
         .transition(.opacity)
     }

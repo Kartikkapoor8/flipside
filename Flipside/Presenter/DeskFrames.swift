@@ -33,6 +33,9 @@ struct DeskFrames: Equatable {
     var bar: CGRect
     var barOpacity: Double
     var aiBarOpacity: Double
+    /// The live monitor: top of the right column when wide, top-trailing corner over the notes when tall.
+    var monitor: CGRect
+    var monitorOpacity: Double
 
     static let pad: CGFloat = 12
     static let gap: CGFloat = 10
@@ -54,13 +57,19 @@ struct DeskFrames: Equatable {
 
         let standingQueue: CGRect
         let standingNotes: CGRect
+        let monitor: CGRect
         if wide {
             let column: CGFloat = max(min(W * 0.26, 190), 150)
-            standingQueue = CGRect(x: inner.maxX - column, y: contentTop, width: column, height: contentBottom - contentTop)
+            let monitorH: CGFloat = column * 0.78
+            monitor = CGRect(x: inner.maxX - column, y: contentTop, width: column, height: monitorH)
+            standingQueue = CGRect(x: inner.maxX - column, y: contentTop + monitorH + gap, width: column, height: contentBottom - contentTop - monitorH - gap)
             standingNotes = CGRect(x: inner.minX, y: contentTop, width: inner.width - column - gap, height: contentBottom - contentTop)
         } else {
+            let monitorW: CGFloat = 116
             standingQueue = CGRect(x: inner.minX, y: contentBottom - queueRowHeight, width: inner.width, height: queueRowHeight)
             standingNotes = CGRect(x: inner.minX, y: contentTop, width: inner.width, height: standingQueue.minY - gap - contentTop)
+            // Bottom corner of the notes card: the serif fills from the top, so this stays clear.
+            monitor = CGRect(x: inner.maxX - monitorW - 8, y: standingNotes.maxY - monitorW * 1.3 - 8, width: monitorW, height: monitorW * 1.3)
         }
 
         // Flat (edit) layout: the queue is a list column on the leading side, the notes take the rest
@@ -93,7 +102,9 @@ struct DeskFrames: Equatable {
             queue: queue,
             bar: barShifted,
             barOpacity: 1 - m.barFade,
-            aiBarOpacity: 1
+            aiBarOpacity: 1,
+            monitor: monitor.offsetBy(dx: 0, dy: -12 * m.queueTurn),
+            monitorOpacity: 1 - m.queueTurn
         )
     }
 

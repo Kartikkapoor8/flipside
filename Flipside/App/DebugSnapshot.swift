@@ -29,19 +29,35 @@ enum DebugSnapshot {
     /// angles, one every `foldStep` seconds, starting after `foldDelay`. Drives the morph for stills
     /// and the recording without DeviceHub. Angle 0 is closed, 180 is flat, the rest partially open.
     @MainActor
-    static func runFoldScript(_ appState: AppState) async {
+    static func runFoldScript(_ appState: AppState, studio: StudioModel) async {
         let args = CommandLine.arguments
-        guard let i = args.firstIndex(of: "-fold"), args.indices.contains(i + 1) else { return }
-        let angles = args[i + 1].split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        guard let i = args.firstIndex(of: "-fold") ?? args.firstIndex(of: "-stage"), args.indices.contains(i + 1) else { return }
+        let steps = args[i + 1].split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
         func number(_ flag: String, _ fallback: Double) -> Double {
             guard let j = args.firstIndex(of: flag), args.indices.contains(j + 1) else { return fallback }
             return Double(args[j + 1]) ?? fallback
         }
         try? await Task.sleep(for: .seconds(number("-foldDelay", 1.5)))
-        for angle in angles {
-            let status: AppState.HingeStatus = angle < 5 ? .closed : (angle >= 178 ? .fullyOpen : .partiallyOpen)
-            withAnimation(.easeInOut(duration: 0.55)) { appState.applyHinge(angle: angle, status: status) }
-            print("[hinge] script angle=\(Int(angle)) status=\(status.rawValue) mode=\(appState.mode.rawValue)")
+        for step in steps {
+            if let angle = Double(step) {
+                let status: AppState.HingeStatus = angle < 5 ? .closed : (angle >= 178 ? .fullyOpen : .partiallyOpen)
+                withAnimation(.easeInOut(duration: 0.55)) { appState.applyHinge(angle: angle, status: status) }
+                print("[hinge] script angle=\(Int(angle)) status=\(status.rawValue) mode=\(appState.mode.rawValue)")
+            } else {
+                // Same actions as the stage strip's buttons.
+                switch step {
+                case "next": studio.next()
+                case "back": studio.back()
+                case "cue": NotificationCenter.default.post(name: .flipsideDebugCue, object: nil)
+                case "client": studio.insertParkingCard()
+                case "laser": studio.toggleLaser()
+                case "generate": studio.replayGeneration()
+                case "end": studio.endMeeting()
+                case "home": withAnimation(Theme.land) { appState.isHome.toggle() }
+                default: print("[stage] unknown step \(step)")
+                }
+                print("[stage] \(step)")
+            }
             try? await Task.sleep(for: .seconds(number("-foldStep", 2.5)))
         }
     }
