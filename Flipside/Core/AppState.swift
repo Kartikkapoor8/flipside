@@ -35,8 +35,10 @@ final class AppState {
     /// True while a deck is streaming in from the model.
     var isGenerating: Bool = false
 
-    /// Which half of the split holds the audience. Swap when the phone is turned around.
-    var audienceOnLeading: Bool = true
+    /// Which half of the split holds the audience: `true` puts it in ArrangementView's primary
+    /// (top / leading) slot. Default is the mockup: presenter on top, audience on the bottom half
+    /// nearest the room. Swap when the phone is turned around.
+    var audienceOnLeading: Bool = false
 
     /// Seconds since the session (or the last `reset()`) began.
     var elapsed: TimeInterval = 0

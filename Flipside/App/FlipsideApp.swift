@@ -2,9 +2,12 @@ import SwiftUI
 
 @main
 struct FlipsideApp: App {
+    @State private var appState = AppState()
+
     var body: some Scene {
         WindowGroup {
-            Text("Flipside")
+            RootView()
+                .environment(appState)
         }
     }
 }
