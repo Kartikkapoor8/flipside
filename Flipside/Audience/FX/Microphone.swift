@@ -6,6 +6,7 @@ import os
 /// Microphone for the prompt: a smoothed 0...1 level for the voice glow, plus live speech-to-text.
 /// Call `start()` from a button tap.
 @Observable
+@MainActor
 final class Microphone {
   enum State: Equatable {
     case idle
@@ -33,7 +34,7 @@ final class Microphone {
   var isLive: Bool { state == .live }
 
   /// Read every frame by the glow; never triggers a SwiftUI update.
-  func level() -> Double {
+  nonisolated func level() -> Double {
     levelBox.withLock { $0 }
   }
 
@@ -95,17 +96,27 @@ final class Microphone {
     let input = engine.inputNode
     let format = input.outputFormat(forBus: 0)
     input.removeTap(onBus: 0)
-    input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-      guard let self else { return }
-      self.request?.append(buffer)
-      self.meter(buffer)
+    // The tap runs on the audio thread, so it only touches thread-safe things.
+    nonisolated(unsafe) let speech = request
+    let box = levelBox
+    let chain = MeterChain(sensitivity: sensitivity, threshold: threshold, attack: attack, release: release)
+    input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+      speech?.append(buffer)
+      Microphone.meter(buffer, chain: chain, into: box)
     }
     engine.prepare()
     try engine.start()
   }
 
+  private struct MeterChain: Sendable {
+    let sensitivity: Double
+    let threshold: Double
+    let attack: Double
+    let release: Double
+  }
+
   /// RMS to dBFS, mapped -55...-12 dB onto 0...1, gated, then an attack/release envelope per buffer.
-  private func meter(_ buffer: AVAudioPCMBuffer) {
+  private nonisolated static func meter(_ buffer: AVAudioPCMBuffer, chain: MeterChain, into levelBox: OSAllocatedUnfairLock<Double>) {
     guard let samples = buffer.floatChannelData?[0] else { return }
     let count = Int(buffer.frameLength)
     guard count > 0 else { return }
@@ -113,11 +124,10 @@ final class Microphone {
     for i in 0..<count { sum += samples[i] * samples[i] }
     let rms = sqrt(sum / Float(count))
     let db = 20 * log10(max(rms, 1e-7))
-    var target = min(max((Double(db) + 55) / 43, 0), 1) * sensitivity
-    target = target < threshold ? 0 : min(target, 1)
-    let attack = attack, release = release
+    let raw = min(max((Double(db) + 55) / 43, 0), 1) * chain.sensitivity
+    let target = raw < chain.threshold ? 0 : min(raw, 1)
     levelBox.withLock { level in
-      let k = target > level ? attack : release
+      let k = target > level ? chain.attack : chain.release
       level += (target - level) * k
     }
   }

@@ -25,3 +25,17 @@ extension String {
     trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: Slide.emptyLineMarker))).isEmpty
   }
 }
+
+extension SlideLayout: Identifiable {
+  var id: String { rawValue }
+
+  var label: String {
+    switch self {
+    case .cover: "Cover"
+    case .statement: "Statement"
+    case .twoColumn: "Two column"
+    case .live: "Live"
+    case .close: "Close"
+    }
+  }
+}
