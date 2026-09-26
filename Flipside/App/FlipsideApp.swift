@@ -8,6 +8,8 @@ struct FlipsideApp: App {
     init() {
         // The last edited deck if there is one (Settings can reload the pitch deck), else the bundled pitch.
         let state = AppState(deck: DeckStore.load() ?? .bundled())
+        // Launch on the home screen; the loaded deck is the "last presented" card there.
+        state.isHome = true
         _appState = State(initialValue: state)
         _studio = State(initialValue: StudioModel(app: state))
     }

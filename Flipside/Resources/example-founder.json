@@ -1,0 +1,59 @@
+{
+  "title": "Ledger for teams",
+  "slides": [
+    {
+      "id": "f-cover",
+      "layout": "cover",
+      "title": "Ledger",
+      "body": "Expenses that file themselves.",
+      "notes": "Thirty seconds. Who we are, what it does.",
+      "cue": "file themselves",
+      "durationHint": 20
+    },
+    {
+      "id": "f-problem",
+      "layout": "statement",
+      "title": "Nobody wants to file an expense.",
+      "body": "So they don't, and finance chases them for weeks.",
+      "notes": "Everyone in the room has done this. Let them nod.",
+      "cue": "for weeks",
+      "durationHint": 30
+    },
+    {
+      "id": "f-how",
+      "layout": "two-column",
+      "title": "How it works",
+      "body": "Photograph the receipt\nWe match it to the card\nManager taps approve\nBooks close on the first",
+      "notes": "Four steps. One breath each.",
+      "cue": "on the first",
+      "durationHint": 45
+    },
+    {
+      "id": "f-traction",
+      "layout": "live",
+      "title": "41 teams in six weeks",
+      "body": "No sales calls yet.",
+      "notes": "Say the number, then say how: one blog post.",
+      "cue": "blog post",
+      "durationHint": 30
+    },
+    {
+      "id": "f-ask",
+      "layout": "statement",
+      "title": "Raising 1.5 to hire two engineers.",
+      "body": "Eighteen months of runway.",
+      "notes": "The ask. Say it plainly. Don't apologise for it.",
+      "cue": "eighteen months",
+      "durationHint": 30
+    },
+    {
+      "id": "f-close",
+      "layout": "close",
+      "title": "Let's talk Monday.",
+      "body": "The deck and the numbers are in your inbox.",
+      "notes": "Close the phone.",
+      "cue": "",
+      "durationHint": 15
+    }
+  ]
+}

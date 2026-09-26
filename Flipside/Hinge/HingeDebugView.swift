@@ -42,6 +42,17 @@ struct HingeDebugView: View {
                             print("[hinge] fake angle=\(Int(new)) mode=\(appState.mode.rawValue)")
                         }
                     HStack(spacing: Brand.Space.s2) {
+                        // Simulates hearing the cue: the pill fills and the deck advances.
+                        Button {
+                            NotificationCenter.default.post(name: .flipsideDebugCue, object: nil)
+                        } label: {
+                            Label("Cue", systemImage: "waveform")
+                                .font(Brand.Font.caption)
+                                .padding(.horizontal, Brand.Space.s3)
+                                .padding(.vertical, Brand.Space.s1)
+                                .background(Brand.Presenter.accent, in: Capsule())
+                                .foregroundStyle(Brand.ink)
+                        }
                         ForEach([("Closed", 0.0), ("Stand", 90.0), ("Flat", 180.0)], id: \.0) { name, value in
                             Button(name) { angle = value }
                                 .font(Brand.Font.caption)
@@ -51,6 +62,9 @@ struct HingeDebugView: View {
                                 .foregroundStyle(Brand.Presenter.text)
                         }
                         Spacer()
+                        Button("Home") { withAnimation(Theme.land) { appState.isHome.toggle() } }
+                            .font(Brand.Font.caption)
+                            .foregroundStyle(Brand.Presenter.text)
                         Text("fold \(String(format: "%.2f", appState.foldProgress))")
                             .font(Brand.Font.caption)
                             .foregroundStyle(Brand.Presenter.muted)
