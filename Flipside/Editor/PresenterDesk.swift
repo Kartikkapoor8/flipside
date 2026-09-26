@@ -76,6 +76,10 @@ private struct DeskHeader: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       GlassEffectContainer(spacing: 6) {
         HStack(spacing: 6) {
+          glassIcon("house", label: "Home", enabled: true) {
+            ProjectStore.save(model.app.deck, id: model.projectID)
+            withAnimation(.easeInOut(duration: 0.3)) { model.app.isHome = true }
+          }
           if editing {
             LayoutToggle(layout: $model.layout)
             glassIcon("arrow.uturn.backward", label: "Undo", enabled: model.canUndo) { model.undo() }

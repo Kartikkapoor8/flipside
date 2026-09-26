@@ -96,8 +96,16 @@ final class StudioModel {
 
   /// Which saved project the working deck belongs to (see `ProjectStore`).
   var projectID: String
-  /// Building a new deck that was started from the folded home screen.
+  /// Building a new deck that was started from the home screen.
   var buildingFromHome = false
+  /// One line the home screen shows after an action ("Open your Duo…"). Nil shows the choices only.
+  var homeNotice: String?
+  /// Slides fully written in the current build, for the home screen's loading bar.
+  var slidesBuilt = 0
+  /// A slide is streaming in right now (started but not finished).
+  var slideInProgress = false
+  /// When the last build finished, so the loading bar can show a full bar briefly and fade.
+  var buildFinishedAt: Date?
 
   init(app: AppState, projectID: String = ProjectStore.pitchID) {
     self.app = app
@@ -117,8 +125,22 @@ final class StudioModel {
     selection = nil
     editing = nil
     projectID = project.id
+    messages.removeAll()
     app.open(project.deck)
-    messages.append(ChatMessage(role: .assistant, text: "Please open your screen to view your deck."))
+    homeNotice = "Please open your screen to view your deck."
+  }
+
+  /// Opens a deck from an imported file as a new project.
+  func importDeck(_ deck: Deck) {
+    ProjectStore.save(app.deck, id: projectID)
+    cancelGeneration()
+    undoStack.removeAll()
+    redoStack.removeAll()
+    projectID = UUID().uuidString
+    messages.removeAll()
+    app.open(deck)
+    ProjectStore.save(deck, id: projectID)
+    homeNotice = "Please open your screen to view your deck."
   }
 
   /// Starts a new project from the home screen's prompt.
@@ -131,8 +153,10 @@ final class StudioModel {
     selection = nil
     editing = nil
     projectID = UUID().uuidString
+    messages.removeAll()
     app.open(Deck(title: "New deck", slides: []))
     buildingFromHome = true
+    homeNotice = Self.openYourDuo
     askBuilds = true
     send(request)
   }
@@ -450,6 +474,9 @@ final class StudioModel {
     selection = nil
     editing = nil
     app.isGenerating = true
+    slidesBuilt = 0
+    slideInProgress = false
+    buildFinishedAt = nil
     orbState = .searching
     status = "Reading your request"
     var parser = DeckStreamParser()
@@ -473,8 +500,11 @@ final class StudioModel {
       }
     }
     app.isGenerating = false
+    slideInProgress = false
+    buildFinishedAt = .now
     orbState = nil
     status = ""
+    if buildingFromHome { homeNotice = "Your deck is ready. Open your Duo." }
     buildingFromHome = false
     ProjectStore.save(app.deck, id: projectID)
   }
@@ -524,6 +554,7 @@ final class StudioModel {
         app.deck.slides.append(slide)
         run.addIndex = app.deck.slides.count - 1
         app.currentIndex = app.deck.slides.count - 1
+        slideInProgress = true
       }
       guard let index = run.addIndex, app.deck.slides.indices.contains(index) else { return }
       fill(&app.deck.slides[index], from: op)
@@ -532,6 +563,8 @@ final class StudioModel {
       if op.complete {
         run.addIndex = nil
         run.built += 1
+        slidesBuilt = run.built
+        slideInProgress = false
       }
 
     case .replace:
