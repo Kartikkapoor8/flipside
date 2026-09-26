@@ -77,6 +77,8 @@ struct Slide: Codable, Identifiable, Hashable, Sendable {
     /// Section this slide belongs to ("The fold"). Consecutive slides sharing one form a tab on the
     /// desk; slides without one stand alone under their title. Added 2026-09-26 for quick jump.
     var section: String? = nil
+    /// A drawn scene for the visual slot ("fold", "cover"), looked up in SceneRegistry. Added 2026-09-26.
+    var scene: String? = nil
 
     init(
         id: String = UUID().uuidString,
@@ -112,6 +114,7 @@ struct Slide: Codable, Identifiable, Hashable, Sendable {
         imageURL = try? c.decodeIfPresent(String.self, forKey: .imageURL)
         media = try? c.decodeIfPresent(SlideMedia.self, forKey: .media)
         section = try? c.decodeIfPresent(String.self, forKey: .section)
+        scene = try? c.decodeIfPresent(String.self, forKey: .scene)
     }
 }
 
