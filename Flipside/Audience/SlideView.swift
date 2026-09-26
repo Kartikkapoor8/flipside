@@ -168,7 +168,7 @@ private struct CreaseGrow: ViewModifier, Animatable {
   let left: CGFloat
   let top: CGFloat
 
-  var animatableData: Double {
+  nonisolated var animatableData: Double {
     get { progress }
     set { progress = newValue }
   }
@@ -309,7 +309,7 @@ struct SlideBackground: View {
     case .live:
       ZStack {
         Color(hex: 0xFBFAF7)
-        DotGrid(spacing: 30, color: .black.opacity(0.07), dot: 2)
+        SlideDotGrid(spacing: 30, color: .black.opacity(0.07), dot: 2)
       }
     case .close:
       ZStack {
@@ -358,7 +358,7 @@ private struct LivePulse: View {
   }
 }
 
-struct DotGrid: View {
+struct SlideDotGrid: View {
   var spacing: CGFloat = 24
   var color: Color = .black.opacity(0.06)
   var dot: CGFloat = 1.6

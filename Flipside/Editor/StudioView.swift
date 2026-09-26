@@ -6,7 +6,6 @@ import SwiftUI
 struct StudioView: View {
   @Bindable var model: StudioModel
   var presenting = false
-  @State private var saveTask: Task<Void, Never>?
 
   var body: some View {
     GeometryReader { proxy in
@@ -47,19 +46,6 @@ struct StudioView: View {
       .animation(.snappy(duration: 0.35), value: sideBySide)
     }
     .background(Theme.background)
-    .sheet(isPresented: $model.showSettings) { SettingsSheet(model: model) }
-    .onChange(of: model.mic.transcript) { _, text in
-      if model.mic.isLive, !text.isEmpty { model.prompt = text }
-    }
-    .onChange(of: model.app.deck) { _, deck in
-      // Save shortly after edits settle, so streaming and dragging don't write every frame.
-      saveTask?.cancel()
-      saveTask = Task {
-        try? await Task.sleep(for: .milliseconds(600))
-        guard !Task.isCancelled else { return }
-        DeckStore.save(deck)
-      }
-    }
   }
 
   private var desk: some View {
@@ -69,7 +55,7 @@ struct StudioView: View {
   @ViewBuilder
   private var audience: some View {
     if presenting {
-      AudienceFace(model: model)
+      StudioAudienceFace(model: model)
     } else {
       ArtifactPane(model: model)
     }
@@ -96,7 +82,7 @@ struct StudioView: View {
 
 /// What the other person sees while presenting: the slide full screen, rotated 180° so it reads right
 /// from across the table, with the laser dot. Slide changes crossfade.
-struct AudienceFace: View {
+struct StudioAudienceFace: View {
   let model: StudioModel
 
   var body: some View {

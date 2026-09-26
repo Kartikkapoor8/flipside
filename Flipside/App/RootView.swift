@@ -13,8 +13,23 @@ import os
 /// `appState.audienceOnLeading` decides which slot holds the audience.
 struct RootView: View {
     @Environment(AppState.self) private var appState
+    @Environment(StudioModel.self) private var studio
 
     var body: some View {
+        if studio.layout == .auto {
+            foldSplit
+        } else {
+            // The desk's layout menu pinned side by side or stacked, so Studio lays out the halves itself.
+            StudioView(model: studio, presenting: appState.mode != .edit)
+                .ignoresSafeArea()
+                .statusBarHidden()
+                .persistentSystemOverlays(.hidden)
+                .monitorsHinge()
+        }
+    }
+
+    /// Follows the fold.
+    private var foldSplit: some View {
         ArrangementView {
             Face(isAudience: appState.audienceOnLeading)
         } secondary: {
@@ -40,13 +55,15 @@ struct RootView: View {
 struct Face: View {
     let isAudience: Bool
     @Environment(\.splitArrangementAxis) private var splitAxis
+    @Environment(StudioModel.self) private var studio
+    @Environment(AppState.self) private var appState
 
     var body: some View {
         Group {
             if isAudience {
-                AudienceFace()
+                StudioAudienceSlot(model: studio)
             } else {
-                PresenterView()
+                PresenterDesk(model: studio, editing: appState.mode == .edit)
             }
         }
         .environment(\.faceAxis, splitAxis)
@@ -100,6 +117,8 @@ struct AudienceFace: View {
 }
 
 #Preview("Root") {
+    let state = AppState()
     RootView()
-        .environment(AppState())
+        .environment(state)
+        .environment(StudioModel(app: state))
 }
