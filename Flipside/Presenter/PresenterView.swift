@@ -66,8 +66,10 @@ struct PresenterView: View {
                 Text(appState.currentSlide.notes.isEmpty ? "No notes for this slide." : appState.currentSlide.notes)
                     .font(Brand.Font.text(24))
                     .lineSpacing(6)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(appState.currentSlide.notes.isEmpty ? Brand.Presenter.muted : Brand.Presenter.text)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
             }
             .frame(maxHeight: .infinity, alignment: .top)
             if !appState.currentSlide.cue.isEmpty {
