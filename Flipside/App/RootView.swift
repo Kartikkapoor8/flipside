@@ -79,6 +79,7 @@ struct Face: View {
             } else if isAudience {
                 // Upright by default. Flip (desk bar) turns it for someone across the table.
                 StudioAudienceSlot(model: studio)
+                    .audienceInteractive(studio)
                     .rotationEffect(.degrees(appState.audienceFlipped ? 180 : 0))
                     .animation(.easeInOut(duration: 0.4), value: appState.audienceFlipped)
             } else if appState.mode == .edit {
