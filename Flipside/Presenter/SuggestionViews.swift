@@ -40,7 +40,7 @@ struct SuggestionToast: View {
                     .foregroundStyle(Theme.text)
                     .padding(.horizontal, 14).frame(height: 36)
                     .glassEffect(.regular, in: .capsule)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .transition(.opacity)
             }
         }
         .animation(Theme.land, value: shown?.id)
@@ -82,7 +82,7 @@ struct SuggestionPill: View {
                 }
                 .padding(.leading, 12).padding(.trailing, 4).padding(.vertical, 4)
                 .glassEffect(.regular, in: .capsule)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(.opacity)
                 .task(id: s.id) {
                     try? await Task.sleep(for: .seconds(12))
                     if model.app.pendingSuggestion?.id == s.id { withAnimation(Theme.fade) { model.app.dismissPending() } }

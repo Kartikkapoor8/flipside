@@ -39,9 +39,6 @@ struct PresenterView: View {
                 NotesCard(model: studio, editing: appState.mode == .edit, cueMatched: cueMatchedFor == studio.current?.id)
                     .matchedGeometryEffect(id: "desk.notes", in: namespace)
                     .deskFrame(frames.notes)
-                    .overlay(alignment: .bottom) {
-                        SuggestionPill(model: studio).padding(10)
-                    }
                     .overlay(alignment: .top) {
                         SuggestionToast(model: studio).padding(.top, 10)
                     }

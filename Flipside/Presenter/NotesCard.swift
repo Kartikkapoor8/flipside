@@ -9,6 +9,7 @@ struct NotesCard: View {
     let editing: Bool
     /// True once the cue was heard for this slide: the pill fills.
     let cueMatched: Bool
+    @Environment(\.isWideFace) private var isWide
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -28,6 +29,11 @@ struct NotesCard: View {
                 editor
             } else {
                 reader
+            }
+            if !editing, model.app.pendingSuggestion != nil {
+                // Clear of the live monitor, which sits in this corner on a tall half.
+                SuggestionPill(model: model)
+                    .padding(.trailing, !isWide && model.app.hingeStatus == .partiallyOpen ? 124 : 0)
             }
         }
         .padding(14)
