@@ -9,7 +9,6 @@ import os
 /// - `.horizontal`: halves side by side, hinge vertical (landscape). Primary is the leading half.
 /// - `nil`: not split (the cover display, or a non-folding device). Falls back to a plain stack.
 ///
-/// The audience face is rotated 180 in every case so it reads from across the hinge.
 /// `appState.audienceOnLeading` decides which slot holds the audience.
 struct RootView: View {
     @Environment(AppState.self) private var appState
@@ -40,13 +39,6 @@ struct RootView: View {
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
         .monitorsHinge()
-        #if DEBUG
-        .overlay(alignment: .center) {
-            // Sits on the fold seam, which is the screen centre in both split axes,
-            // so it never covers the presenter header or the slide.
-            HingeDebugView()
-        }
-        #endif
     }
 }
 

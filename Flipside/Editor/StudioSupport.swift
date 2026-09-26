@@ -30,7 +30,7 @@ extension View {
   }
 }
 
-/// The audience slot in RootView: editable and upright when flat, read-only and rotated 180 when standing.
+/// The audience slot in RootView: editable when flat, read-only when standing. Always upright.
 struct StudioAudienceSlot: View {
   let model: StudioModel
 

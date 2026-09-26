@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Both poses. One half is the presenter desk, the other is the audience's full-screen slide.
-/// Flat (`presenting == false`): the slide is editable in place. Standing: it's drawn rotated 180° for the far side.
+/// Flat (`presenting == false`): the slide is editable in place. Standing: it's read-only.
 /// The split follows the fold (or the pinned layout), and Swap sides trades the halves.
 struct StudioView: View {
   @Bindable var model: StudioModel
@@ -80,8 +80,8 @@ struct StudioView: View {
 
 // MARK: - Audience face (standing)
 
-/// What the other person sees while presenting: the slide full screen, rotated 180° so it reads right
-/// from across the table, with the laser dot. Slide changes crossfade.
+/// What the other person sees while presenting: the slide full screen, upright, with the laser dot.
+/// Slide changes crossfade.
 struct StudioAudienceFace: View {
   let model: StudioModel
 
@@ -96,7 +96,6 @@ struct StudioAudienceFace: View {
         .transition(.opacity)
       }
     }
-    .rotationEffect(.degrees(180))
     .onGeometryChange(for: CGSize.self, of: \.size) { size in
       if size.height > 0 { model.artifactAspect = size.width / size.height }
     }
