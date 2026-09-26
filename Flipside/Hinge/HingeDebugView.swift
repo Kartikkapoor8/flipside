@@ -60,6 +60,7 @@ struct HingeDebugView: View {
                 key("Cue heard", "waveform") { NotificationCenter.default.post(name: .flipsideDebugCue, object: nil) }
                 key("Client asked", "bubble.left.fill") { studio.insertParkingCard() }
                 key(appState.laserPoint == nil ? "Laser on" : "Laser off", "scope", tinted: appState.laserPoint != nil) { studio.toggleLaser() }
+                key("Flip", "arrow.trianglehead.2.clockwise.rotate.90", tinted: appState.audienceFlipped) { withAnimation(.easeInOut(duration: 0.4)) { appState.flipAudience() } }
             }
             HStack(spacing: 6) {
                 ForEach([("90", 90.0), ("135", 135.0), ("180", 180.0)], id: \.0) { name, value in

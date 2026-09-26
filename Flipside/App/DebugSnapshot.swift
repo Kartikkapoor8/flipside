@@ -50,6 +50,7 @@ enum DebugSnapshot {
                 case "back": studio.back()
                 case "cue": NotificationCenter.default.post(name: .flipsideDebugCue, object: nil)
                 case "chat": NotificationCenter.default.post(name: .flipsideDebugChat, object: nil)
+                case "flip": withAnimation(.easeInOut(duration: 0.4)) { appState.flipAudience() }
                 case "client": studio.insertParkingCard()
                 case "laser": studio.toggleLaser()
                 case "generate": studio.replayGeneration()

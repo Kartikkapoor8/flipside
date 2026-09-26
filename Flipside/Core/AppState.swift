@@ -40,6 +40,11 @@ final class AppState {
     /// landscape (hinge vertical). Swap when the phone is turned around.
     var audienceOnLeading: Bool = true
 
+    /// Draw the audience half upside down (the other person sits across the table). Off by default:
+    /// they are beside you, reading the same half from the same side. Flip on the desk bar toggles it.
+    /// Added 2026-09-26 for Block 2.
+    var audienceFlipped: Bool = false
+
     /// Seconds since the session (or the last `reset()`) began.
     var elapsed: TimeInterval = 0
 
@@ -84,6 +89,10 @@ final class AppState {
 
     func swapSides() {
         audienceOnLeading.toggle()
+    }
+
+    func flipAudience() {
+        audienceFlipped.toggle()
     }
 
     /// Opens a deck from the home screen: replaces the working deck, resets the session, leaves home.

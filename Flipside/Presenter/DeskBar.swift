@@ -25,6 +25,19 @@ struct DeskBar: View {
                 .accessibilityLabel(pointerShown ? "Hide pointer" : "Show pointer")
 
                 Button {
+                    model.app.flipAudience()
+                } label: {
+                    Label("Flip", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
+                        .font(.system(size: 13, weight: .semibold))
+                        .padding(.horizontal, 14)
+                        .frame(height: 40)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(model.app.audienceFlipped ? .white : Theme.text)
+                .glassEffect(model.app.audienceFlipped ? .regular.tint(Theme.coral).interactive() : .regular.interactive(), in: .capsule)
+                .accessibilityLabel(model.app.audienceFlipped ? "Audience upright" : "Flip audience")
+
+                Button {
                     model.swapSides()
                 } label: {
                     Label("Swap", systemImage: "arrow.left.arrow.right")

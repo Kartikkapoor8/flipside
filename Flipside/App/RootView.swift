@@ -77,11 +77,10 @@ struct Face: View {
                 // Laptop pose: the deck grid on the top half, the topic tile on the bottom half.
                 DeckHomeView(part: isAudience ? .grid : .topic, namespace: namespace)
             } else if isAudience {
-                // Standing, their half faces away from you: draw it upside down so it reads from
-                // across the table. Flat, both of you look at it from the same side.
+                // Upright by default. Flip (desk bar) turns it for someone across the table.
                 StudioAudienceSlot(model: studio)
-                    .rotationEffect(.degrees(facesAway ? 180 : 0))
-                    .animation(Theme.fade, value: facesAway)
+                    .rotationEffect(.degrees(appState.audienceFlipped ? 180 : 0))
+                    .animation(.easeInOut(duration: 0.4), value: appState.audienceFlipped)
             } else if appState.mode == .edit {
                 // Flat: the editor's desk (Editor/) takes the half.
                 PresenterDesk(model: studio, editing: true)
@@ -95,10 +94,6 @@ struct Face: View {
         .animation(Theme.fade, value: appState.mode)
         .onAppear { Self.log(splitAxis, isAudience: isAudience) }
         .onChange(of: splitAxis) { _, new in Self.log(new, isAudience: isAudience) }
-    }
-
-    private var facesAway: Bool {
-        appState.mode == .present && appState.hingeStatus == .partiallyOpen
     }
 
     private static let logger = Logger(subsystem: "dev.flipside", category: "layout")
