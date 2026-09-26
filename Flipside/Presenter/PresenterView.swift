@@ -90,8 +90,13 @@ struct PresenterView: View {
     /// Start listening as soon as the desk shows, once. If the mic is unavailable the bar says so
     /// and the seam chip's Cue button drives the same visual.
     private func autoListen() {
+        #if targetEnvironment(simulator)
+        // No mic on stage: the card runs the stage transcript and the strip fires the cue.
+        return
+        #else
         guard studio.mic.state == .idle, appState.mode == .present else { return }
         studio.mic.start()
+        #endif
     }
 
     // MARK: Clock
