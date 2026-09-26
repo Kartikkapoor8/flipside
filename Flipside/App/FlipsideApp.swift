@@ -8,6 +8,11 @@ struct FlipsideApp: App {
         WindowGroup {
             RootView()
                 .environment(appState)
+                .onAppear {
+                    #if DEBUG
+                    DebugSnapshot.armIfRequested()
+                    #endif
+                }
         }
     }
 }

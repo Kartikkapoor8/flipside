@@ -36,10 +36,13 @@ struct AudienceFace: View {
 
     var body: some View {
         GeometryReader { proxy in
-            AudienceSlideView(slide: appState.currentSlide)
-                .frame(width: proxy.size.width, height: proxy.size.height)
-                .clipped()
-                .rotationEffect(.degrees(180))
+            ZStack {
+                AudienceSlideView(slide: appState.currentSlide)
+                LaserDotView(point: appState.laserPoint)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipped()
+            .rotationEffect(.degrees(180))
         }
         .background(Brand.Audience.background)
         .ignoresSafeArea()
