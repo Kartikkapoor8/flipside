@@ -24,6 +24,14 @@ struct RootView: View {
         .ignoresSafeArea()
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
+        .monitorsHinge()
+        #if DEBUG
+        .overlay(alignment: .topTrailing) {
+            HingeDebugView()
+                .padding(.top, Brand.Space.s5)
+                .padding(.trailing, Brand.Space.s3)
+        }
+        #endif
     }
 }
 
