@@ -82,7 +82,7 @@ private struct HomeBackdrop: View {
 // MARK: - Chat
 
 /// The latest few messages. Empty state invites a prompt.
-private struct HomeChat: View {
+struct HomeChat: View {
   let model: StudioModel
 
   var body: some View {
@@ -151,8 +151,10 @@ private struct HomeMessageRow: View {
 }
 
 /// Prompt field with the voice glow. Sending starts a new project.
-private struct HomeComposer: View {
+struct HomeComposer: View {
   @Bindable var model: StudioModel
+  /// Home (App/DeckHomeView) starts the project itself so the phone stays on the home screen while it builds.
+  var onSend: ((String) -> Void)? = nil
   @FocusState private var focused: Bool
 
   var body: some View {
@@ -210,7 +212,7 @@ private struct HomeComposer: View {
   private func send() {
     let text = model.prompt
     focused = false
-    model.startProject(text)
+    if let onSend { onSend(text) } else { model.startProject(text) }
   }
 }
 

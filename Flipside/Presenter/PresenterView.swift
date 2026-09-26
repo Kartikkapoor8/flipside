@@ -11,6 +11,8 @@ struct PresenterView: View {
     let namespace: Namespace.ID
 
     @State private var pointerShown = false
+    /// The AI card opened into the chat from Generate/ (same morph as the home screen's capsule).
+    @State private var chatOpen = false
     /// Slide id the cue was heard for, so it fires once per slide.
     @State private var cueMatchedFor: String?
     @State private var advanceTask: Task<Void, Never>?
@@ -24,9 +26,12 @@ struct PresenterView: View {
             let frames = DeskFrames.compute(size: proxy.size, wide: wide, morph: morph)
             ZStack(alignment: .topLeading) {
                 PaperBackdrop()
-                AIBar(model: studio)
-                    .deskFrame(frames.aiBar)
-                    .opacity(frames.aiBarOpacity)
+                if !chatOpen {
+                    AIBar(model: studio, onTap: { withAnimation(HomeMotion.morph) { chatOpen = true } })
+                        .matchedGeometryEffect(id: "home.chat", in: namespace)
+                        .deskFrame(frames.aiBar)
+                        .opacity(frames.aiBarOpacity)
+                }
                 NotesCard(model: studio, editing: appState.mode == .edit, cueMatched: cueMatchedFor == studio.current?.id)
                     .matchedGeometryEffect(id: "desk.notes", in: namespace)
                     .deskFrame(frames.notes)
@@ -43,7 +48,15 @@ struct PresenterView: View {
                     .deskFrame(frames.bar)
                     .opacity(frames.barOpacity)
                     .allowsHitTesting(frames.barOpacity > 0.5)
+                if chatOpen {
+                    // The chat card grows out of the AI card and sits over the notes.
+                    ChatCard(namespace: namespace, onClose: { withAnimation(HomeMotion.morph) { chatOpen = false } }, onSend: { studio.send($0) })
+                        .frame(width: frames.notes.width)
+                        .position(x: frames.notes.midX, y: frames.aiBar.minY + (frames.notes.maxY - frames.aiBar.minY) * 0.42)
+                        .transition(.opacity)
+                }
             }
+            .animation(HomeMotion.morph, value: chatOpen)
             .overlay(alignment: .topLeading) {
                 if appState.hingeStatus == .partiallyOpen && appState.mode == .present {
                     LiveMonitor(model: studio, namespace: namespace)
@@ -59,6 +72,10 @@ struct PresenterView: View {
         .task(id: appState.mode) { await runClock() }
         .task { autoListen() }
         .onChange(of: studio.mic.transcript) { _, text in checkCue(in: text) }
+        .onChange(of: appState.isGenerating) { _, generating in
+            // Asked the AI mid-pitch and it finished: the card folds back into the AI card.
+            if !generating, chatOpen { withAnimation(HomeMotion.morph) { chatOpen = false } }
+        }
         .onChange(of: appState.currentIndex) { _, _ in
             advanceTask?.cancel()
             if cueMatchedFor != studio.current?.id { cueMatchedFor = nil }

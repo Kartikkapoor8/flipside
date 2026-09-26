@@ -8,6 +8,8 @@ struct AIBar: View {
     let model: StudioModel
     /// Narrower variant for a half-height slot.
     var compact = false
+    /// Tap. Default starts or stops the mic; the desk passes the chat opener instead.
+    var onTap: (() -> Void)? = nil
 
     var body: some View {
         let mic = model.mic
@@ -32,7 +34,7 @@ struct AIBar: View {
         .glassEffect(.regular.interactive(), in: .capsule)
         .hingeHighlight(Capsule(), angle: model.app.hingeAngle)
         .contentShape(Capsule())
-        .onTapGesture { mic.toggle() }
+        .onTapGesture { if let onTap { onTap() } else { mic.toggle() } }
         .animation(Theme.fade, value: mic.isLive)
         .accessibilityLabel(mic.isLive ? "Listening. Tap to stop." : "Tap to listen")
     }
