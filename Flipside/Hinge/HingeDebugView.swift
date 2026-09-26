@@ -56,6 +56,8 @@ struct HingeDebugView: View {
                 key("Next", "chevron.right") { studio.next() }
                 key("Cue heard", "waveform") { NotificationCenter.default.post(name: .flipsideDebugCue, object: nil) }
                 key("Client asked", "bubble.left.fill") { studio.insertParkingCard() }
+                key("Suggest", "sparkles") { studio.offerSuggestion(StudioModel.cannedTentative) }
+                key("Direct", "bolt.fill") { studio.offerSuggestion(StudioModel.cannedDirect) }
                 key(appState.laserPoint == nil ? "Laser on" : "Laser off", "scope", tinted: appState.laserPoint != nil) { studio.toggleLaser() }
                 key("Flip", "arrow.trianglehead.2.clockwise.rotate.90", tinted: appState.audienceFlipped) { withAnimation(.easeInOut(duration: 0.4)) { appState.flipAudience() } }
             }

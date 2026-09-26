@@ -55,6 +55,8 @@ enum DebugSnapshot {
                 case "open": withAnimation(HomeMotion.morph) { studio.projectID = ProjectStore.pitchID; appState.open(.bundled()) }
                 case "pointer": NotificationCenter.default.post(name: .flipsideDebugPointer, object: nil)
                 case "client": studio.insertParkingCard()
+                case "suggest": studio.offerSuggestion(StudioModel.cannedTentative)
+                case "direct": studio.offerSuggestion(StudioModel.cannedDirect)
                 case "laser": studio.toggleLaser()
                 case "generate": studio.replayGeneration()
                 case "pitch": studio.submit("Build the Flipside pitch")
