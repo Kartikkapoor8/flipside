@@ -32,6 +32,10 @@ final class AppState {
     /// (un-rotated) coordinate space. `nil` when lifted.
     var laserPoint: CGPoint? = nil
 
+    /// The client's finger on the audience slide, normalized 0...1, drawn Verdigris on both halves.
+    /// `nil` when lifted. Added 2026-09-26 for the point scene.
+    var clientPoint: CGPoint? = nil
+
     /// True while a deck is streaming in from the model.
     var isGenerating: Bool = false
 
