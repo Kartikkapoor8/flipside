@@ -59,7 +59,8 @@ struct NotesCard: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .id(model.current?.id)
-            .transition(.opacity)
+            // The old notes leave at once; the new ones fade in. Two flows never overlap.
+            .transition(.asymmetric(insertion: .opacity, removal: .identity))
         }
     }
 

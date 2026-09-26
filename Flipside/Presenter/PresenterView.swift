@@ -36,9 +36,9 @@ struct PresenterView: View {
                     .matchedGeometryEffect(id: "desk.notes", in: namespace)
                     .deskFrame(frames.notes)
                     .overlay {
+                        // The overlay already has the notes card's size, so no extra frame.
                         if pointerShown {
                             PointerSheet(model: studio, shown: $pointerShown)
-                                .deskFrame(frames.notes)
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                     }
