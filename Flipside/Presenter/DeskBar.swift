@@ -5,6 +5,7 @@ import SwiftUI
 struct DeskBar: View {
     let model: StudioModel
     @Binding var pointerShown: Bool
+    @Binding var mediaShown: Bool
 
     var body: some View {
         GlassEffectContainer(spacing: 8) {
@@ -22,6 +23,19 @@ struct DeskBar: View {
                 .accessibilityLabel("Home")
                 timer
                 Spacer(minLength: 0)
+                Button {
+                    withAnimation(.easeOut(duration: 0.3)) { mediaShown.toggle() }
+                } label: {
+                    Label("Media", systemImage: "photo.on.rectangle")
+                        .font(.system(size: 13, weight: .semibold))
+                        .padding(.horizontal, 14)
+                        .frame(height: 40)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(mediaShown ? .white : Theme.text)
+                .glassEffect(mediaShown ? .regular.tint(Theme.coral).interactive() : .regular.interactive(), in: .capsule)
+                .accessibilityLabel(mediaShown ? "Hide media" : "Show media")
+
                 Button {
                     withAnimation(.easeOut(duration: 0.3)) { pointerShown.toggle() }
                 } label: {

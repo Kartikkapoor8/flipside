@@ -344,7 +344,7 @@ private struct TextTab: View {
 }
 
 /// Quick buttons for the deck's videos and images and the three animation presets.
-private struct MediaTab: View {
+struct MediaTab: View {
   let model: StudioModel
 
   var body: some View {

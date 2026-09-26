@@ -11,6 +11,7 @@ struct PresenterView: View {
     let namespace: Namespace.ID
 
     @State private var pointerShown = false
+    @State private var mediaShown = false
     /// The AI card opened into the chat from Generate/ (same morph as the home screen's capsule).
     @State private var chatOpen = false
     /// Slide id the cue was heard for, so it fires once per slide.
@@ -51,10 +52,16 @@ struct PresenterView: View {
                         .deskFrame(frames.pointer)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                DeskBar(model: studio, pointerShown: $pointerShown)
+                DeskBar(model: studio, pointerShown: $pointerShown, mediaShown: $mediaShown)
                     .deskFrame(frames.bar)
                     .opacity(frames.barOpacity)
                     .allowsHitTesting(frames.barOpacity > 0.5)
+                if mediaShown {
+                    MediaDock(model: studio, onClose: { withAnimation(.easeOut(duration: 0.3)) { mediaShown = false } })
+                        .frame(width: frames.notes.width)
+                        .offset(x: frames.notes.minX, y: frames.notes.minY)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
                 if chatOpen {
                     // The chat card grows out of the AI card and sits over the notes.
                     ChatCard(namespace: namespace, onClose: { withAnimation(HomeMotion.morph) { chatOpen = false } }, onSend: { studio.submit($0) })
