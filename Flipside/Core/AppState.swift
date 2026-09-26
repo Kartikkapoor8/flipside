@@ -36,9 +36,9 @@ final class AppState {
     var isGenerating: Bool = false
 
     /// Which half of the split holds the audience: `true` puts it in ArrangementView's primary
-    /// (top / leading) slot. Default is the mockup: presenter on top, audience on the bottom half
-    /// nearest the room. Swap when the phone is turned around.
-    var audienceOnLeading: Bool = false
+    /// slot, which is the top half in portrait (hinge horizontal) and the leading half in
+    /// landscape (hinge vertical). Swap when the phone is turned around.
+    var audienceOnLeading: Bool = true
 
     /// Seconds since the session (or the last `reset()`) began.
     var elapsed: TimeInterval = 0
