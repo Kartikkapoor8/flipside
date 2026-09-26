@@ -4,6 +4,8 @@ import SwiftUI
 /// the red dot. Client touches on the audience side are drawn separately by the audience layer.
 struct PointScene: View {
     var laser: CGPoint?
+    @Environment(AppState.self) private var app
+    static let verdigris = Color(red: 0.26, green: 0.70, blue: 0.68)
 
     var body: some View {
         SceneClock { t in
@@ -18,8 +20,15 @@ struct PointScene: View {
                                 .shadow(color: .red.opacity(0.7), radius: 5)
                                 .position(x: dot.x * p.size.width, y: dot.y * p.size.height)
                                 .animation(.easeOut(duration: 0.2), value: dot)
+                            if let c = app.clientPoint {
+                                Circle().fill(Self.verdigris).frame(width: 14, height: 14)
+                                    .shadow(color: Self.verdigris.opacity(0.8), radius: 6)
+                                    .position(x: c.x * p.size.width, y: c.y * p.size.height)
+                                    .transition(.opacity)
+                            }
                         }
                     }
+                    .animation(.easeOut(duration: 0.3), value: app.clientPoint == nil)
                 Canvas { ctx, size in
                     for x in stride(from: 8, to: size.width, by: 12) {
                         for y in stride(from: 8, to: size.height, by: 12) {

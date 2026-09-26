@@ -7,6 +7,7 @@ struct AudienceInteraction: ViewModifier {
     let model: StudioModel
     @State private var expanded = false
     @State private var overlayShown = false
+    @State private var clientFade: Task<Void, Never>?
 
     func body(content: Content) -> some View {
         content
@@ -43,6 +44,28 @@ struct AudienceInteraction: ViewModifier {
                 }
             }
             .simultaneousGesture(swipe)
+            .overlay {
+                // The point scene: a touch puts the client's dot on the card, gone 1.5 s after release.
+                if model.app.mode == .present, model.current?.scene == "point" {
+                    GeometryReader { proxy in
+                        Color.clear.contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { v in
+                                        clientFade?.cancel()
+                                        model.app.clientPoint = CGPoint(x: min(max(v.location.x / proxy.size.width, 0), 1),
+                                                                        y: min(max(v.location.y / proxy.size.height, 0), 1))
+                                    }
+                                    .onEnded { _ in
+                                        clientFade = Task { @MainActor in
+                                            try? await Task.sleep(for: .milliseconds(1500))
+                                            if !Task.isCancelled { withAnimation(Theme.fade) { model.app.clientPoint = nil } }
+                                        }
+                                    }
+                            )
+                    }
+                }
+            }
             .onChange(of: model.app.currentIndex) { _, _ in
                 expanded = false
                 overlayShown = false
