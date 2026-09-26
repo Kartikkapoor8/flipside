@@ -101,7 +101,7 @@ struct DeckHomeView: View {
         studio.buildingFromHome = false
         studio.askBuilds = true
         startedHere = true
-        studio.send(request)
+        studio.submit(request)
     }
 }
 

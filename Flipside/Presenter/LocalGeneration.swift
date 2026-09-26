@@ -13,7 +13,7 @@ extension StudioModel {
     }
 
     /// Posts `request` to the chat, then streams `stream` as if the model had written it.
-    func runLocal(request: String, stream: AsyncThrowingStream<String, Error>) {
+    func runLocal(request: String, stream: AsyncThrowingStream<String, Error>, onFinish: (() -> Void)? = nil) {
         guard !app.isGenerating else { return }
         if mic.isLive { mic.stop() }
         prompt = ""
@@ -23,6 +23,7 @@ extension StudioModel {
         messages.append(ChatMessage(role: .assistant, text: buildingFromHome ? Self.openYourDuo : "", isWorking: true))
         Task { @MainActor in
             await consume(stream)
+            onFinish?()
         }
     }
 

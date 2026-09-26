@@ -57,6 +57,7 @@ enum DebugSnapshot {
                 case "client": studio.insertParkingCard()
                 case "laser": studio.toggleLaser()
                 case "generate": studio.replayGeneration()
+                case "pitch": studio.submit("Build the Flipside pitch")
                 case "end": studio.endMeeting()
                 case "home": withAnimation(Theme.land) { appState.isHome.toggle() }
                 default: print("[stage] unknown step \(step)")

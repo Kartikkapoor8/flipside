@@ -55,7 +55,7 @@ struct PresenterView: View {
                     .allowsHitTesting(frames.barOpacity > 0.5)
                 if chatOpen {
                     // The chat card grows out of the AI card and sits over the notes.
-                    ChatCard(namespace: namespace, onClose: { withAnimation(HomeMotion.morph) { chatOpen = false } }, onSend: { studio.send($0) })
+                    ChatCard(namespace: namespace, onClose: { withAnimation(HomeMotion.morph) { chatOpen = false } }, onSend: { studio.submit($0) })
                         .frame(width: frames.aiBar.width)
                         .offset(x: frames.aiBar.minX, y: frames.aiBar.minY)
                         .transition(.opacity)

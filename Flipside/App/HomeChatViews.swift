@@ -135,6 +135,6 @@ struct HomeComposer: View {
   private func send() {
     let text = model.prompt
     focused = false
-    if let onSend { onSend(text) } else { model.startProject(text) }
+    if let onSend { onSend(text) } else { model.submitProject(text) }
   }
 }
