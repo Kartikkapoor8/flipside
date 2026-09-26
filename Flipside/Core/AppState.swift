@@ -43,6 +43,10 @@ final class AppState {
     /// Seconds since the session (or the last `reset()`) began.
     var elapsed: TimeInterval = 0
 
+    /// True when no deck is open: the home screen shows instead of the desk and slide.
+    /// Added in Block 2 for the home screen. `open(_:)` clears it.
+    var isHome: Bool = false
+
     init(deck: Deck = .bundled()) {
         self.deck = deck
     }
@@ -80,6 +84,13 @@ final class AppState {
 
     func swapSides() {
         audienceOnLeading.toggle()
+    }
+
+    /// Opens a deck from the home screen: replaces the working deck, resets the session, leaves home.
+    func open(_ deck: Deck) {
+        self.deck = deck
+        reset()
+        isHome = false
     }
 
     /// Back to the first slide, timer at zero, laser off, presenting.
