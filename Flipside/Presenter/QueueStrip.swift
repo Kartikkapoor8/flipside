@@ -11,6 +11,7 @@ struct QueueStrip: View {
     var namespace: Namespace.ID
 
     @State private var dragging: (id: String, offset: CGSize)?
+    @State private var rowHeight: CGFloat = DeskFrames.queueRowHeight
 
     var body: some View {
         let slides = model.app.deck.slides
@@ -37,6 +38,7 @@ struct QueueStrip: View {
             }
         }
         .clipped()
+        .onGeometryChange(for: CGFloat.self, of: \.size.height) { rowHeight = $0 }
         .animation(Theme.land, value: current)
         .animation(DeskMotion.crossfade, value: slides.map(\.id))
         .accessibilityLabel("Slide queue")
@@ -46,7 +48,7 @@ struct QueueStrip: View {
     private func reorderGesture(for slide: Slide, at index: Int, aspect: CGFloat) -> some Gesture {
         let vertical = verticalness > 0.5
         // Card pitch in the current orientation (see QueueLayout).
-        let pitch: CGFloat = vertical ? (QueueLayout.thumb / aspect + 12 + 8) : ((DeskFrames.queueRowHeight - 12) * aspect + 12 + 8)
+        let pitch: CGFloat = vertical ? (QueueLayout.thumb / aspect + 12 + 8) : ((min(rowHeight, DeskFrames.queueRowMax) - 12) * aspect + 12 + 8)
         return LongPressGesture(minimumDuration: 0.25)
             .sequenced(before: DragGesture(minimumDistance: 4))
             .onChanged { value in
@@ -143,7 +145,7 @@ struct QueueLayout: Layout {
 
         // Row geometry: card height = bounds height, width from the slide aspect plus padding.
         // Mid-fold the frame is already growing toward the column; the row cards keep their height.
-        let rowH = min(bounds.height, DeskFrames.queueRowHeight)
+        let rowH = min(bounds.height, DeskFrames.queueRowMax)
         let rowW = (rowH - 12) * aspect + 12
         // Column geometry: card width = bounds width, thumbnail 56 wide beside a title.
         let colW = bounds.width

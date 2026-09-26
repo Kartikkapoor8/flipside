@@ -45,6 +45,8 @@ struct DeskFrames: Equatable {
     static let tabsHeight: CGFloat = 36
     static let barHeight: CGFloat = 48
     static let queueRowHeight: CGFloat = 112
+    /// Row cards never grow past this, whatever the queue frame's height.
+    static let queueRowMax: CGFloat = 220
 
     /// - wide: the half is wider than tall (portrait phone, hinge horizontal). Then the queue is a
     ///   column on the right while standing. Tall halves (hinge vertical) put it under the notes.
@@ -70,8 +72,11 @@ struct DeskFrames: Equatable {
             standingNotes = CGRect(x: inner.minX, y: contentTop, width: inner.width - column - gap, height: contentBottom - contentTop)
         } else {
             let monitorW: CGFloat = 116
-            standingQueue = CGRect(x: inner.minX, y: contentBottom - queueRowHeight, width: inner.width, height: queueRowHeight)
-            standingNotes = CGRect(x: inner.minX, y: contentTop, width: inner.width, height: standingQueue.minY - gap - contentTop)
+            // Presenters know what to say: the notes take about 60 percent of the content height,
+            // the rest goes to the queue thumbnails.
+            let notesH = ((contentBottom - contentTop - gap) * 0.6).rounded()
+            standingNotes = CGRect(x: inner.minX, y: contentTop, width: inner.width, height: notesH)
+            standingQueue = CGRect(x: inner.minX, y: standingNotes.maxY + gap, width: inner.width, height: contentBottom - standingNotes.maxY - gap)
             // Bottom corner of the notes card: the serif fills from the top, so this stays clear.
             monitor = CGRect(x: inner.maxX - monitorW - 8, y: standingNotes.maxY - monitorW * 1.3 - 8, width: monitorW, height: monitorW * 1.3)
         }
